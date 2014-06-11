@@ -1,0 +1,17 @@
+Package: cyberTools
+Type: Package
+Title: Cyber Tools
+Version: 0.1
+Date: 2014-03-15
+Author: Ryan Hafen
+Maintainer: Ryan Hafen <ryan.hafen@pnnl.gov>
+Description: Helper functions for VAST Cyber Challenge data.
+License: BSD_3_clause + file LICENSE
+LazyLoad: yes
+LazyData: yes
+Depends:
+    R (>= 2.15.1),
+    lattice,
+    plyr,
+    lubridate,
+    mixtools

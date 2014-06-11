@@ -1,0 +1,308 @@
+```
+
+```{r eval=TRUE, echo=FALSE, message=FALSE, purl=FALSE}
+options(width = 90)
+Sys.setenv(TZ = "UTC")
+library(datadr)
+library(trelliscope)
+library(cyberTools)
+library(Rhipe)
+rhinit()
+rhoptions(runner = "/share/apps/R/3.0.2/bin/R CMD /share/apps/R/3.0.2/lib64/R/library/Rhipe/bin/RhipeMapReduce --slave --silent --vanilla")
+setwd("~/vast")
+hdfs.setwd("/user/hafe647/vast")
+nfRaw <- ddf(hdfsConn("nfRaw"))
+nfByHost <- ddf(hdfsConn("nfByHost"))
+load("data/artifacts/hostTimeAgg.Rdata")
+load("data/artifacts/hostTimeAggDF.Rdata")
+load("data/artifacts/hostTimeDirAgg.Rdata")
+```
+
+## Activity 4: Divide and Recombine / Trelliscope ##
+
+### Activity 4.1: Division by Inside Host ###
+
+```{r activity4, eval=FALSE, echo=FALSE, purl=TRUE}
+###########################################################
+### Activity 4: Divide and Recombine / Trelliscope
+###########################################################
+
+###########################################################
+### Activity 4.1
+### Division by Inside Host
+###########################################################
+```
+
+We have looked at many summaries and are now ready to look at some of the data in more detail.  
+
+For many of our analyses, it makes sense to be investigating the behaviors of individual hosts inside the network.  The data we read in was arbitrarily split into 50K rows per subset, but for doing per-inside-host analyses, it makes sense to divide the data by inside host.  Another division that is worth looking into is looking at all hosts for small slices of time, which we will do later.
+
+In the `preTransFn`, we filter out the DDoS attacks, we will get rid of the 4 big HTTP hosts cooresponding to our previous analysis.  We want to filter out records with destination in `bigIPs` and source in `badIPs` during `bigTimes`:
+
+```{r eval=TRUE, echo=TRUE}
+# load data to help remove DDOS records
+load("data/artifacts/bigTimeAgg.Rdata")
+bigTimes <- sort(unique(bigTimeAgg$timeMinute[bigTimeAgg$Freq > 1000]))
+
+bigIPs <- c("172.20.0.15", "172.20.0.4", "172.10.0.4", "172.30.0.4")
+badIPs <- c("10.138.214.18", "10.17.15.10", "10.12.15.152", "10.170.32.110", "10.170.32.181", "10.10.11.102", "10.247.106.27", "10.247.58.182", "10.78.100.150", "10.38.217.48", "10.6.6.7", "10.12.14.15", "10.15.7.85", "10.156.165.120", "10.0.0.42", "10.200.20.2", "10.70.68.127", "10.138.235.111", "10.13.77.49", "10.250.178.101")
+```
+
+To create the `nfByHost` division, we define a new variable `hostIP` and split on that, knowing that we have taken care of inside->inside connections... `getHost()` takes the chunk of data being processed and adds a new column `hostIP` and `srcIsHost`...
+
+```{r nfByHost, eval=FALSE, echo=TRUE}
+# divide data by host IP
+nfByHost <- divide(nfRaw, by = "hostIP",
+   preTransFn = function(x) {
+      suppressMessages(library(cyberTools))
+      x$timeMinute <- as.POSIXct(trunc(x$date, 0, units = "mins"))
+      x <- subset(x, !(timeMinute %in% bigTimes & 
+         firstSeenSrcIp %in% c(bigIPs, badIPs) & 
+         firstSeenDestIp %in% c(bigIPs, badIPs)))
+      if(nrow(x) > 0) {
+         return(getHost(x))
+      } else {
+         return(NULL)
+      }
+   },
+   output = hdfsConn("nfByHost")
+)
+nfByHost <- updateAttributes(nfByHost)
+```
+
+Look at the object...
+
+```{r printByHost, eval=TRUE, echo=TRUE}
+# print nfbyHost
+nfByHost
+```
+
+Much smaller - plenty small to handle in memory actually...
+
+The subset sizes in this partitioning of the data are lopsided...
+
+```{r plotByHostRows, eval=TRUE, echo=TRUE, fig.width=9, fig.height=5}
+# look at the distribution of number of rows in nfByHost
+plot(log10(splitRowDistn(nfByHost)))
+```
+
+### Activity 4.2: Time-Aggregated Recombination ###
+
+```{r activity4.2, eval=FALSE, echo=FALSE, purl=TRUE}
+###########################################################
+### Activity 4.2
+### Time-Aggregated Recombination
+###########################################################
+```
+
+Let's tabulate number of connections by hour.  We can do this by calling `recombine()`, which will `apply` a function to each subset and `combine` the results using `combDdo()`, which outputs a distributed data object.
+
+```{r hostTimeAgg, eval=FALSE, echo=TRUE}
+# roll data up to counts by hour for each host
+hostTimeAgg <- recombine(nfByHost, 
+   apply = function(x) {
+      timeHour <- as.POSIXct(trunc(x$date, 0, units = "hours"))
+      res <- data.frame(xtabs(~ timeHour))
+      res$timeHour <- as.POSIXct(res$timeHour)
+      res
+   }, 
+   combine = combDdo())
+save(hostTimeAgg, file = "data/artifacts/hostTimeAgg.Rdata")
+```
+
+This results in a distributed data object.  We can further apply a recombination to see if there are any big spikes from the aggregated time plot present:
+
+```{r hostTimeAggDF, eval=FALSE, echo=TRUE}
+# merge hostTimeAgg into a single data frame
+hostTimeAggDF <- recombine(hostTimeAgg, 
+   apply = identity, 
+   combine = combRbind())
+save(hostTimeAggDF, file = "data/artifacts/hostTimeAggDF.Rdata")
+```
+
+Plot...
+
+```{r plotHostTimeAggDF, eval=TRUE, echo=TRUE, fig.width=9, fig.height=5}
+# plot the time series
+xyplot(sqrt(Freq) ~ timeHour, data = hostTimeAggDF, alpha = 0.5)
+```
+
+Massive spikes are not present.  But some other interesting time behavior...
+
+### Activity 4.3: Trelliscope Displays ###
+
+```{r activity4.3, eval=FALSE, echo=FALSE, purl=TRUE}
+###########################################################
+### Activity 4.3
+### Trelliscope Displays
+###########################################################
+```
+
+For this activity, we will make a couple of simple Trelliscope displays.  The Trelliscope docs have many more details than what is discussed here.
+
+Trelliscope provides a visual recombination approach to D&R.  In Trelliscope, we specify a function to be applied to each subset that produces a plot.  Each plot is called a "panel".  The collection of panels for given dataset is called a "display".  A collection of displays is called a "visualization database" (VDB).
+
+Trelliscope provides an interactive viewer that allows the user to specify how to sort, filter, and arrange the panels in a display to view them in a meaningful way.
+
+#### Initializing a VDB
+
+```{r loadTrell, eval=TRUE, echo=TRUE, message=FALSE, results='hide'}
+# load trelliscope
+library(trelliscope)
+# initiate a visualization database (VDB) connection
+vdbConn("vdb")
+```
+
+#### A simple time series display
+
+A simple visualization for our `hostTimeAgg` is to look at the aggregated hourly counts vs. time for each inside host.  We can specify a panel function that, given one subset of our data, `x`, plots this:
+
+```{r trellPanel, eval=TRUE, echo=TRUE}
+# panel function for simple time series plot
+timePanel <- function(x) {
+   xyplot(sqrt(Freq) ~ timeHour, data = x, type = c("p", "g"))
+}
+```
+
+We can test the panel function on a subset:
+
+```{r trellPanelTest, eval=TRUE, echo=TRUE, fig.width=9, fig.height=5}
+# test on subset
+timePanel(hostTimeAgg[[1]][[2]])
+```
+
+To help us interact with the panels in a more meaningful way, we can specify metrics to be computed for each subset, called "cognostics".  Using cognostics, in the viewer we can specify sorting and filters based on these metrics to help focus on panels of interest in the data.
+
+Here is a simple cognostics function which computes for a given host metrics such as the number of total connections, median and standard deviation of number of hourly counts, etc.
+
+```{r trellCog, eval=TRUE, echo=TRUE}
+# cognostics function for simple time series plot
+timeCog <- function(x) {
+   IP <- attr(x, "split")$hostIP
+   curHost <- hostList[hostList$IP == IP,]
+   
+   list(
+      hostName = cog(curHost$hostName, desc = "host name"),
+      type = cog(curHost$type, desc = "host type"),
+      nobs = cog(sum(x$Freq), "log 10 total number of connections"),
+      timeCover = cog(nrow(x), desc = "number of hours containing connections"),
+      medHourCt = cog(median(sqrt(x$Freq)), 
+         desc = "median square root number of connections"),
+      madHourCt = cog(mad(sqrt(x$Freq)), 
+         desc = "median absolute deviation square root number of connections"),
+      max = cog(max(x$Freq), desc = "maximum number of connections in an hour")
+   )
+}
+
+# test on subset
+timeCog(hostTimeAgg[[1]][[2]])
+```
+
+We can now make a display by providing our panel and cognostics functions, as well as additional information such as the name of the display and a description.
+
+```{r trellMake, eval=FALSE, echo=TRUE}
+# create the display
+makeDisplay(hostTimeAgg,
+   name = "hourly_count",
+   group = "inside_hosts",
+   desc = "time series plot of hourly counts of connections for each inside host",
+   panelFn = timePanel,
+   cogFn = timeCog,
+   panelDim = list(width = 800, height = 400),
+   lims = list(x = "same", y = "same"))
+```
+
+A version of this is available to view [here](http://glimmer.rstudio.com/rhafen/vast/#group=inside_hosts&name=hourly_count).
+
+Observations:
+
+- HTTP hosts have weird plateus on Apr 11 and Apr 13
+- Domain Controllers are pretty erratic - dc01.bigmkt1.com has a plateau
+- SMTP jumps and then trails down, and the jump is not always on the day
+  - it is usually arount 170 connections / hour
+- Administrator is pretty boring
+- Workstations:
+  - sorted by `timeCover`, some have nice periodic behavior
+  - most workstations have activity for just 1-2 hours a day
+  - sometimes there is activity that spans a full day (e.g. 172.20.1.94)
+  - This is not at all how I would think workstations behave
+
+#### Syncing a VDB to a web server
+
+We can sync our visualization database to a web server by initializing a web connection and calling `webSync()`:
+
+```{r name, eval=FALSE, echo=TRUE}
+# initiate a "web" connection
+webConn(ip = "localhost", appDir = "/var/shiny-server/www", name = "vast")
+# sync VDB to web
+webSync(fixPermissions = TRUE)
+```
+
+These displays are now available to view here: 
+[http://bigdatann:3838/vast/trelliscopeViewer/](http://bigdatann:3838/vast/trelliscopeViewer/)
+
+
+#### Break it up by incoming / outgoing
+
+If host is first seen source, classify connection as "outgoing" (this will not be 100% correct), otherwise, incoming, then aggregate by hour...
+
+```{r hostTimeDirAgg, eval=FALSE, echo=TRUE}
+# aggregate hourly counts by "incoming", "outgoing"
+hostTimeDirAgg <- recombine(nfByHost, 
+   apply = function(x) {
+      x$timeHour <- as.POSIXct(trunc(x$date, 0, units = "hours"))
+      res <- data.frame(xtabs(~ timeHour + srcIsHost, data = x))
+      res$timeHour <- as.POSIXct(res$timeHour)
+      res$direction <- "incoming"
+      res$direction[as.logical(as.character(res$srcIsHost))] <- "outgoing"
+      subset(res, Freq > 0)
+   }, 
+   combine = combDdo())
+save(hostTimeDirAgg, file = "data/artifacts/hostTimeDirAgg.Rdata")
+```
+
+<!--
+# TODO: fix getSplitVars for when not of class divValue
+# TODO: find out why it's not divValue
+-->
+
+Now make a similar display:
+
+```{r timeDirDisplay, eval=FALSE, echo=TRUE}
+# new slightly different time panel
+timePanelDir <- function(x) {
+   xyplot(sqrt(Freq) ~ timeHour, groups = direction, data = x, type = c("p", "g"), auto.key = TRUE)
+}
+
+# create the display
+makeDisplay(hostTimeDirAgg,
+   name = "hourly_count_src_dest",
+   group = "inside_hosts",
+   desc = "time series plot of hourly counts of connections for each inside host by source / destination",
+   panelFn = timePanelDir,
+   panelDim = list(width = 800, height = 400),
+   cogFn = timeCog,
+   lims = list(x = "same", y = "same"))
+```
+
+Observations:
+
+- SMTP: 172.20.0.3 has a weird plateau thing at the beginning of each day for its outgoing connections
+- Domain Controller:
+  - outgoings are steady and low
+  - incomings are typically very high but only for a contiguous 4-5 hours a day - investigate these
+- Administrator: 
+  - outgoings are low and steady
+  - incomings are one or two spikes a day (look into this and see what port)
+- Workstations:
+  - with cyclical behavior, such as 172.10.2.66
+  - the cyclical behavior is coming from outgoing connections
+  - Workstation 172.30.1.215 has 2019 connections
+  - After that is workstation 172.10.2.106, with 29234
+  - 172.10.2.106, 172.30.1.218, 172.20.1.23, 172.10.2.135, 172.20.1.81, 172.20.1.47, 172.30.1.223, 172.10.2.66 - these guys all have about 29K connections, and look very similar, and are cyclical - why?
+- HTTP hosts with same plateu behavior:
+  - 172.10.0.5, 172.10.0.9, 172.10.0.8, 172.20.0.6, 172.10.0.7
+  - Also notice that there is a hole at 2013-04-14 17:00
+  - most everyone has a missing point there
+- SMTP has outgoing
+

@@ -1,0 +1,79 @@
+```
+
+```{r eval=TRUE, echo=FALSE, purl=FALSE}
+{
+   options(width = 90)
+   Sys.setenv(TZ = "UTC")
+   library(datadr)
+   library(trelliscope)
+   library(cyberTools)
+   setwd("~/Documents/Code/vastChallenge")
+   cl <- makeCluster(8)
+   clc <- localDiskControl(cluster = cl)
+   ipsRaw <- ddf(localDiskConn("data/ipsRaw"))
+   ipsByHost <- ddf(localDiskConn("data/ipsByHost"))
+   load("data/artifacts/ipsRows.Rdata")
+}
+```
+
+## IPS Data ##
+
+### IPS Exploration ###
+
+```{r ipsEx, eval=TRUE, echo=TRUE}
+head(ipsRaw[[1]][[2]])
+```
+
+...
+
+```{r ipsFlags, eval=TRUE, echo=TRUE}
+summary(ipsRaw)$flags$freqTab
+```
+
+...
+
+### IPS By Host Division ###
+
+Note that the source and destination IPs often contain the pre-[NAT](http://en.wikipedia.org/wiki/Network_address_translation)-ed IP.  We need to account for this when splitting the data up by host.  To do this, we merge in the `hostList` using the `externalIP` variable.
+
+```{r ipsByHost, eval=FALSE, echo=TRUE}
+ipsByHost <- divide(ipsRaw, by = "hostIP",
+   preTransFn = function(x) {
+      names(x)[names(x) == "destIp"] <- "destIpNat"
+      # need to un-NAT the destination IP
+      x <- merge(x, hostList[,c("IP", "externalIP")], by.x = "destIpNat", by.y = "externalIP", all.x = TRUE)
+      names(x)[ncol(x)] <- "destIp"
+      ind <- is.na(x$destIp)
+      x$destIp[ind] <- x$destIpNat[ind]
+      x <- getHost(x, src = "srcIp", dest = "destIp")
+      subset(x, !x$hostIP %in% bigIPs)
+   },
+   output = localDiskConn("data/ipsByHost"),
+   control = clc
+)
+ipsByHost <- updateAttributes(ipsByHost, control = clc)
+```
+
+Let's look at the distribution of number of rows for each host:
+
+```{r ipsRows, eval=FALSE, echo=TRUE}
+ipsRows <- recombine(ipsByHost, apply = nrow, combine = combRbind(), control = clc)
+save(ipsRows, file = "data/artifacts/ipsRows.Rdata")
+```
+
+What does the distribution look like?
+
+```{r ipsRowsPlot, eval=TRUE, echo=TRUE, fig.width=7, fig.height=5}
+plot(log10(sort(ipsRows$val)))
+```
+
+There are some very large ones:
+
+```{r name, eval=TRUE, echo=TRUE}
+ipsBig <- subset(ipsRows, val > 90000)
+merge(ipsBig, hostList, by. = "hostIP", by.y = "IP")
+```
+
+...
+
+We can join this in with the other data sets by host as well...

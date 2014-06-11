@@ -1,0 +1,2847 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>VAST Challenge with datadr and Trelliscope</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <link href="assets/bootstrap/css/bootstrap.css" rel="stylesheet">
+    <link href="assets/custom/custom.css" rel="stylesheet">
+    <!-- font-awesome -->
+    <link href="assets/font-awesome/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- prism -->
+    <link href="assets/prism/prism.css" rel="stylesheet">
+    <link href="assets/prism/prism.r.css" rel="stylesheet">
+    <script type='text/javascript' src='assets/prism/prism.js'></script>
+    <script type='text/javascript' src='assets/prism/prism.r.js'></script>
+    
+    
+    
+    <script type="text/javascript" src="assets/MathJax/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+   MathJax.Hub.Config({    
+     extensions: ["tex2jax.js"],    
+     "HTML-CSS": { scale: 100}    
+   });
+   </script>
+    
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="js/html5shiv.js"></script>
+    <![endif]-->
+    
+    <link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
+    <!-- <link href='http://fonts.googleapis.com/css?family=Lustria' rel='stylesheet' type='text/css'> -->
+    <link href='http://fonts.googleapis.com/css?family=Bitter' rel='stylesheet' type='text/css'>
+    
+
+    <!-- Fav and touch icons -->
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="ico/apple-touch-icon-144-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="ico/apple-touch-icon-114-precomposed.png">
+      <link rel="apple-touch-icon-precomposed" sizes="72x72" href="ico/apple-touch-icon-72-precomposed.png">
+                    <link rel="apple-touch-icon-precomposed" href="ico/apple-touch-icon-57-precomposed.png">
+                                   <!-- <link rel="shortcut icon" href="ico/favicon.png"> -->
+  </head>
+
+  <body>
+
+    <div class="container-narrow">
+
+      <div class="masthead">
+        <ul class="nav nav-pills pull-right">
+           <li class=''><a href='http://hafen.github.io/datadr/'>datadr</a></li><li class=''><a href='http://hafen.github.io/trelliscope/'>trelliscope</a></li>
+        </ul>
+        <p class="myHeader">VAST Challenge with datadr and Trelliscope</p>
+      </div>
+
+      <hr>
+
+<div class="container-fluid">
+   <div class="row-fluid">
+   
+   <div class="col-md-3 well">
+   <ul class = "nav nav-list" id="toc">
+   <li class='nav-header unselectable' data-edit-href='00_init.Rmd'>Getting Set Up</li>
+      
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#introduction'>Introduction</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#environment-setup'>Environment setup</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#file-setup'>File Setup</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#session-initialization'>Session Initialization</a>
+      </li>
+
+
+<li class='nav-header unselectable' data-edit-href='01_read.Rmd'>Raw Data ETL</li>
+      
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#text-data-to-r-objects'>Text Data to R Objects</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#netflow-data'>NetFlow Data</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#ips-data'>IPS Data</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#big-brother-data'>Big Brother Data</a>
+      </li>
+
+
+<li class='nav-header unselectable' data-edit-href='02_explore.Rmd'>NetFlow Exploration</li>
+      
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#sourcedestination-ip-frequency'>Source/Destination IP Frequency</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#busiest-host-ips'>Busiest Host IPs</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#sourcedest-ip-payload'>Source/Dest IP Payload</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#inside-to-inside'>Inside to Inside</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#connection-duration'>Connection Duration</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#top-ports'>Top Ports</a>
+      </li>
+
+
+<li class='nav-header unselectable' data-edit-href='03_dnr.Rmd'>NetFlow D&R</li>
+      
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#division-by-inside-host'>Division by Inside Host</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#time-aggregated-recombination'>Time-Aggregated Recombination</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#trelliscope-displays'>Trelliscope Displays</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#closer-investigation'>Closer Investigation</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#more-trelliscope-displays'>More Trelliscope Displays</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#division-by-external-host'>Division by External Host</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#division-by-time'>Division by Time</a>
+      </li>
+
+
+<li class='nav-header unselectable' data-edit-href='04_bb.Rmd'>Network Health Data</li>
+      
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#bb-exploration'>BB Exploration</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#bb-by-host-division'>BB By Host Division</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#joining-with-netflow'>Joining with NetFlow</a>
+      </li>
+
+
+<li class='nav-header unselectable' data-edit-href='05_ips.Rmd'>IPS Data</li>
+      
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#ips-exploration'>IPS Exploration</a>
+      </li>
+
+
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#ips-by-host-division'>IPS By Host Division</a>
+      </li>
+
+
+<li class='nav-header unselectable' data-edit-href='A_code.Rmd'>Appendix</li>
+      
+      <li class='active'>
+         <a target='_self' class='nav-not-header' href='#r-code'>R Code</a>
+      </li>
+
+   </ul>
+   </div>
+
+<div class="col-md-9 tab-content" id="main-content">
+
+<div class='tab-pane active' id='introduction'>
+<h3>Introduction</h3>
+
+<p>The goal of this tutorial is to provide useful examples of how to use <a href="https://github.com/hafen/datadr" title="datadr github page">datadr</a> and <a href="https://github.com/hafen/trelliscope" title="trelliscope github page">Trelliscope</a> as a supplement to the introductory tutorials provided <a href="http://hafen.github.io/datadr" title="datadr tutorial">here</a> and <a href="http://hafen.github.io/trelliscope" title="trelliscope tutorial">here</a>, which focus more on illustrating functionality than doing something useful with data.  It is based around the <a href="http://vacommunity.org/VAST+Challenge+2013%3A+Mini-Challenge+3">2013 VAST Mini-Challenge 3 dataset</a>.</p>
+
+<div class="callout callout-danger"><strong>Note: </strong>This tutorial is an evolving document.  Some sections may be less filled out than others.  Expect changes and updates.  Also note that serious analysis of data requires a great deal of investigation and currently this document only provides examples that will get you started down the path.  Please send any comments or report issues to <a href="mailto:ryan.hafen@pnnl.gov">ryan.hafen@pnnl.gov</a>.</div>
+
+<h4>Data sources</h4>
+
+<p>The data available for download on the <a href="http://vacommunity.org/VAST+Challenge+2013%3A+Mini-Challenge+3">VAST challenge</a> page provides files that contain Network Flow (netflow), Network Health, and Intrusion Protection System data.  Documentation that describes these data, as well as a diagram of the network, is available here:</p>
+
+<ul>
+<li><a href="docs/data/NetFlow_NetworkHealth.pdf">Netflow and network health</a></li>
+<li><a href="docs/data/IPS.pdf">Intrusion protection system</a></li>
+<li><a href="docs/data/NetworkArhictecture.pdf">Network Diagram</a></li>
+</ul>
+
+<p><a href="http://en.wikipedia.org/wiki/NetFlow">Netflow</a> data provides summaries of connections between computers on a network.  For example, if you visit a web page, you initiate a connection between your computer and a web server.  The connection is identified by the IP address of your computer and the network port from which it originated, as well as the IP address and network port of the machine it is connecting to.  In the course of a connection, packets containing data are sent back and forth.  A netflow record provides a summary of the connection, including the source and destination information we just discussed, as well as the total number of packets sent/received, total bytes sent/received, <a href="http://en.wikipedia.org/wiki/Internet_protocol_suite">internet protocol</a> used (the two most common are <a href="http://en.wikipedia.org/wiki/Transmission_Control_Protocol">TCP</a> and <a href="http://en.wikipedia.org/wiki/User_Datagram_Protocol">UDP</a>), etc.</p>
+
+<p>The other types of data are a bit more self-explanatory.  The IPS data is simply a log of suspicious network activity.  The network health data is a record of statistics of machines polled at some time interval to provide information such as the amount of memory or CPU usage.</p>
+
+<p>We will get more familiar with the data as we begin to explore it, and endeavor to provide descriptions for aspects of the data that may be difficult to understand to someone who has not worked with this type of data before.</p>
+
+<h4>Analysis goals</h4>
+
+<p>According to the VAST Challenge website:</p>
+
+<blockquote>
+<p>Your job is to understand events taking place on your networks over a two week period. To support your mission, your choice of visual analytics should support near real-time situation awareness. In other words, as network manager, your goal for your department is to notice network events as quickly as possible.</p>
+</blockquote>
+
+<p>We are asked to provide a timeline of notable events and to speculate on narratives that describe the events on the network.</p>
+
+<p>Keeping those goals in mind, we will address a more general goal of simply trying to get an understanding of the data through exploratory analysis, making heavy use of visualization throughout, and highlighting the use of datadr and Trelliscope.  </p>
+
+<!-- After getting an understanding of the data, we will attempt to try to statistically model some of the behaviors that we see and look for behavior that is atypical according to these models. -->
+
+<div class="callout callout-danger"><strong>Note: </strong>Keep in mind that this data is synthetically generated.  There are some limitations to treating this like a "real" analysis of data.  One limitation is that the data was synthetically generated - something we must accept because otherwise it would be very difficult provide publicly-available sources of these modalities of network sensor data.  Another limitation is that in a real analysis scenario, we would ideally have domain experts very familiar with the network helping us understand the things we are seeing in the data and helping the evolution of the analytical process.</div>
+
+<!-- #### Analysis paradigm -->
+
+<h4>&quot;Prerequisites&quot;</h4>
+
+<p>It is assumed that the reader is familiar with the R programming language.  If not, there are several references, including:</p>
+
+<ul>
+<li><a href="http://cran.r-project.org/doc/contrib/Paradis-rdebuts_en.pdf">R for Beginners</a>.</li>
+</ul>
+
+<p>Some familiarity with datadr and Trelliscope is also a plus.  It is recommended to spend some time visiting these tutorials:</p>
+
+<ul>
+<li><a href="http://hafen.github.io/datadr" title="datadr tutorial">datadr</a></li>
+<li><a href="http://hafen.github.io/trelliscope" title="trelliscope tutorial">Trelliscope</a></li>
+</ul>
+
+<p>Everything in this demonstration is done from the R console.  Since the data is not very large, we will mainly use R&#39;s multicore capabilities for parallel processing and local disk for storage, although a more scalable backend such as Hadoop could be used simply by replacing calls to <code>localDiskConn()</code> with <code>hdfsConn()</code>.  Using multicore mode lowers the barrier to entry, since building and configuring a Hadoop cluster is not a casual endeavor.</p>
+
+<div class="callout callout-danger"><strong>Note: </strong>This data is not that large - about 6 GB uncompressed.  There are other tools in R that can handle this size of data, or some systems could handle it in memory.  But imagine now that there are many more hosts, a much longer time period, etc.  The size of computer network sensor data is typically much much larger than this, in the terabyte and beyond scale, and these tools scale to tackle these problems.  Also, regardless of size, the analysis paradigm these tools provide is useful for any size of data.</div>
+
+</div>
+
+
+<div class='tab-pane' id='environment-setup'>
+<h3>Environment setup</h3>
+
+<p>To follow along in this tutorial, you simply need to have <a href="http://cran.r-project.org">R</a> installed along with the <code>datadr</code> and <code>trelliscope</code> packages.  To get these packages, we can install them from github using the <code>devtools</code> package by entering the following commands at the R command prompt:</p>
+
+<pre><code class="r">install.packages(&quot;devtools&quot;)
+library(devtools)
+install_github(&quot;datadr&quot;, &quot;hafen&quot;)
+install_github(&quot;trelliscope&quot;, &quot;hafen&quot;)
+</code></pre>
+
+<!-- such as converting IP addresses to [CIDRs](http://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing) -->
+
+<p>Additionally, we have packaged together some helper functions and data sets particular to this data, which can be installed with:</p>
+
+<pre><code class="r">install_github(&quot;vastChallenge&quot;, &quot;hafen&quot;, subdir = &quot;package&quot;)
+</code></pre>
+
+<p>The following section will cover how to set up the raw data download to get going.  You can replicate every step of this tutorial on your own, and are encouraged to do so and to be creative and explore your own analyses.  For convenience, all of the code in the tutorial is provided as <code>.R</code> source files <a href="#r-code">here</a>.</p>
+
+</div>
+
+
+<div class='tab-pane' id='file-setup'>
+<h3>File Setup</h3>
+
+<p>We will organize all of the data and analysis code into a project directory.  For us, this directory is located at <code>~/Documents/Code/vastChallenge</code>.  Choose an appropriate directory for your project and then set that as the working directory in R:</p>
+
+<pre><code class="r">setwd(&quot;~/Documents/Code/vastChallenge&quot;)
+</code></pre>
+
+<p>Inside this directory we will create a directory for our raw data.</p>
+
+<pre><code class="r"># create directory for raw text data
+dir.create(&quot;data/raw&quot;, recursive = TRUE)
+</code></pre>
+
+<p>Now we need the raw data to put in it.  The raw data can be obtained by following download link from <a href="http://vacommunity.org/VAST+Challenge+2013%3A+Mini-Challenge+3">this page</a>.  Here we are only looking at &quot;Week 2&quot; data.</p>
+
+<p>Unzip the files and move the csv files to the directory <code>data/raw</code>.</p>
+
+<p>Aside from the larger csv files, there are other files, including pdf files of data descriptions and a small text file describing the hosts, <code>BigMktNetwork.txt</code>.  We have already parsed this file and its contents are available as a data set called <code>hostList</code> in the <code>cyberTools</code> R package installed previously.</p>
+
+<p>At this point, we should have the following files in our project directory:</p>
+
+<pre><code>data/raw/bb-week2.csv
+data/raw/IPS-syslog-week2.csv
+data/raw/nf-week2.csv
+</code></pre>
+
+</div>
+
+
+<div class='tab-pane' id='session-initialization'>
+<h3>Session Initialization</h3>
+
+<p>To initialize an R session for this or any subsequent analyses of this data, we simply launch R and load the required R packages, set the working directory, and initialize a local &quot;cluster&quot;:</p>
+
+<pre><code class="r"># use this code to initialize a new R session
+library(datadr)
+library(trelliscope)
+library(cyberTools)
+setwd(&quot;~/Documents/Code/vastChallenge&quot;)
+
+# make a local &quot;cluster&quot; of 8 cores
+cl &lt;- makeCluster(8)
+clc &lt;- localDiskControl(cluster = cl)
+</code></pre>
+
+</div>
+
+
+<div class='tab-pane' id='text-data-to-r-objects'>
+<h3>Text Data to R Objects</h3>
+
+<p>One of the more tedious parts of data analaysis can be getting the data into the proper format for analysis.  <code>datadr</code> aspires to provide as much functionality to make this process as painless as possible, but there will always be special situations that require unique solutions.</p>
+
+<p>For analysis in <code>datadr</code>, we want to take the raw data and store it as native R objects.  This provides a great degree of flexibility in what type of data structures we can use, such as non-tabular data or special classes of R objects like time series or spatial objects.</p>
+
+<p>Here, all of our input data is text.  Text files are used quite often for storing and sharing big data.  For example, often <a href="https://hive.apache.org">Hive</a> tables are stored as text files.  <code>datadr</code> provides some helpful functions that make it easy to deal with reading in text data and storing it as R objects..  </p>
+
+<p>In this section we will go through how to read each of the data sources in from text.  In each case, we read the data in in chunks.  These examples read the data into <code>datadr</code>&#39;s &quot;local disk&quot; storage mode using a helper function <code>drRead.csv()</code>.  This method also works for reading in text data on HDFS.</p>
+
+</div>
+
+
+<div class='tab-pane' id='netflow-data'>
+<h3>NetFlow Data</h3>
+
+<p>The NetFlow data is located here: <code>data/raw/nf-week2.csv</code>.  To get a feel for what it looks like, we&#39;ll read in the first few rows using R&#39;s built-in function <code>read.csv()</code>.</p>
+
+<div class="callout callout-danger"><strong>Note: </strong>A common paradigm when using datadr is to test code on a subset of the data prior to applying it to the entire data set.  We will see this frequently throughout this document.</div>
+
+<h4>Looking at a subset</h4>
+
+<p>To read in and look at the first 10 rows:</p>
+
+<pre><code class="r"># read in 10 rows of netflow data
+nfHead &lt;- read.csv(&quot;data/raw/nf-week2.csv&quot;, nrows = 10, stringsAsFactors = FALSE)
+</code></pre>
+
+<p>Here&#39;s what the first few rows and some of the columns of this data look like:</p>
+
+<pre><code class="r">nfHead[1:10,3:7]
+</code></pre>
+
+<pre><code>   dateTimeStr ipLayerProtocol ipLayerProtocolCode firstSeenSrcIp firstSeenDestIp
+1    2.013e+13              17                 UDP    172.20.2.19 239.255.255.250
+2    2.013e+13              17                 UDP    172.20.2.18 239.255.255.250
+3    2.013e+13              17                 UDP    172.20.2.17 239.255.255.250
+4    2.013e+13              17                 UDP    172.20.2.16 239.255.255.250
+5    2.013e+13              17                 UDP    172.20.2.14 239.255.255.250
+6    2.013e+13              17                 UDP    172.20.2.13 239.255.255.250
+7    2.013e+13              17                 UDP    172.20.2.12 239.255.255.250
+8    2.013e+13              17                 UDP    172.20.2.11 239.255.255.250
+9    2.013e+13              17                 UDP    172.20.2.10 239.255.255.250
+10   2.013e+13              17                 UDP    172.20.2.35 239.255.255.250
+</code></pre>
+
+<p>Let&#39;s look at the structure of the object to see all the columns and their data types:</p>
+
+<pre><code class="r"># look at structure of the data
+str(nfHead)
+</code></pre>
+
+<pre><code>&#39;data.frame&#39;:   10 obs. of  19 variables:
+ $ TimeSeconds              : num  1.37e+09 1.37e+09 1.37e+09 1.37e+09 1.37e+09 ...
+ $ parsedDate               : chr  &quot;2013-04-10 08:32:36&quot; &quot;2013-04-10 08:32:36&quot; &quot;2013-04-10 08:32:36&quot; &quot;2013-04-10 08:32:36&quot; ...
+ $ dateTimeStr              : num  2.01e+13 2.01e+13 2.01e+13 2.01e+13 2.01e+13 ...
+ $ ipLayerProtocol          : int  17 17 17 17 17 17 17 17 17 17
+ $ ipLayerProtocolCode      : chr  &quot;UDP&quot; &quot;UDP&quot; &quot;UDP&quot; &quot;UDP&quot; ...
+ $ firstSeenSrcIp           : chr  &quot;172.20.2.19&quot; &quot;172.20.2.18&quot; &quot;172.20.2.17&quot; &quot;172.20.2.16&quot; ...
+ $ firstSeenDestIp          : chr  &quot;239.255.255.250&quot; &quot;239.255.255.250&quot; &quot;239.255.255.250&quot; &quot;239.255.255.250&quot; ...
+ $ firstSeenSrcPort         : int  29987 29986 29985 29984 29983 29982 29981 29980 29979 29978
+ $ firstSeenDestPort        : int  1900 1900 1900 1900 1900 1900 1900 1900 1900 1900
+ $ moreFragments            : int  0 0 0 0 0 0 0 0 0 0
+ $ contFragments            : int  0 0 0 0 0 0 0 0 0 0
+ $ durationSeconds          : int  0 0 0 0 0 0 0 0 0 0
+ $ firstSeenSrcPayloadBytes : int  133 133 133 133 133 133 133 133 133 133
+ $ firstSeenDestPayloadBytes: int  0 0 0 0 0 0 0 0 0 0
+ $ firstSeenSrcTotalBytes   : int  175 175 175 175 175 175 175 175 175 175
+ $ firstSeenDestTotalBytes  : int  0 0 0 0 0 0 0 0 0 0
+ $ firstSeenSrcPacketCount  : int  1 1 1 1 1 1 1 1 1 1
+ $ firstSeenDestPacketCount : int  0 0 0 0 0 0 0 0 0 0
+ $ recordForceOut           : int  0 0 0 0 0 0 0 0 0 0
+</code></pre>
+
+<p>This looks like it is almost in a suitable form for analysis.  However, there are two columns that correspond to time, and neither is in a handy R-native format.  Instead of having a column for <code>TimeSeconds</code> and <code>parsedDate</code>, let&#39;s create a new column <code>time</code> that is an R <code>POSIXct</code> object.</p>
+
+<pre><code class="r"># make new date variable
+nfHead$date &lt;- as.POSIXct(nfHead$TimeSeconds, origin = &quot;1970-01-01&quot;, tz = &quot;UTC&quot;)
+# remove old time variables
+nfHead &lt;- nfHead[,setdiff(names(nfHead), c(&quot;TimeSeconds&quot;, &quot;parsedDate&quot;))]
+</code></pre>
+
+<p>Let&#39;s now make this operation a function, so that when we read in new rows of the data, we can just pass it through the function to obtain the preferred format:</p>
+
+<pre><code class="r">nfTransform &lt;- function(x) {
+   x$date &lt;- as.POSIXct(x$TimeSeconds, origin = &quot;1970-01-01&quot;, tz = &quot;UTC&quot;)
+   x[,setdiff(names(x), c(&quot;TimeSeconds&quot;, &quot;parsedDate&quot;))]
+}
+</code></pre>
+
+<p>We will use this function later.</p>
+
+<p>Now that we have figured out what we want to do with the data, we can read the whole thing in.  But first we need to talk a little bit about disk connections in <code>datadr</code>.</p>
+
+<h4>Local disk connections</h4>
+
+<p>We will be storing the data we read in as a <code>datadr</code> <em>local disk connection</em>.  A local disk connection is defined by the path where we would like the data to be stored.  This should be an empty directory, and can be a nonexistent directory.</p>
+
+<p>Here, we would like to store our parsed netflow data in <code>data/nfRaw</code>.  We initialize this connection with a call to <code>localDiskConn()</code>:</p>
+
+<pre><code class="r"># initiate a new connection where parsed netflow data will be stored
+nfConn &lt;- localDiskConn(&quot;data/nfRaw&quot;)
+</code></pre>
+
+<p>This will prompt for whether you want the directory to be created if it does not exist.  <code>nfConn</code> is now simply an R object that points to this location on disk:</p>
+
+<pre><code class="r"># look at the connection
+nfConn
+</code></pre>
+
+<pre><code>localDiskConn connection
+  loc=/Users/hafe647/Documents/Code/vastChallenge/data/nfRaw; nBins=0
+</code></pre>
+
+<p>We can either add data to this connection using <code>addData()</code> or we can pass it as the <code>output</code> argument to our csv reader, as we will do in the following section.</p>
+
+<h4>Reading it all in</h4>
+
+<p>It turns out that there is a handy function in <code>datadr</code> that is the analog to <code>read.csv</code>, called <code>drRead.csv</code>, which reads the data in in blocks.  It has the same calling interface as R&#39;s <code>read.csv</code> with additional arguments to specify where to store the output, how many rows to put in each block, and an optional transformation function to apply to each block prior to storing it.</p>
+
+<p>We will read in the netflow csv file using the default number of rows per block (<code>50000</code>), apply our <code>nfTransform</code> function that adds the <code>time</code> variable, and save the output to our <code>nfConn</code> local disk connection:</p>
+
+<pre><code class="r"># read in netflow data
+nfRaw &lt;- drRead.csv(&quot;data/raw/nf-week2.csv&quot;, output = nfConn, postTransFn = nfTransform)
+</code></pre>
+
+<p>Be prepared - the ETL operations using local disk are the most time-consuming tasks in this tutorial.  On my machine, the above command takes about 10 minutes to execute.  We will see that subsequent operations applied to the divided, parsed data are much faster.</p>
+
+<div class="callout callout-danger"><strong>Note: </strong>The drRead.csv function for local disk reads the data in sequentially.  However, drRead.csv operates in parallel when using the Hadoop backend.  There are a couple of reasons for sequential operation in local disk mode.  One is that simultaneous reads from the same single disk will probably not be faster, and could actually have worse performance (this is one of the most compelling reasons to use a distributed file system comprised of many disks such as what Hadoop provides).  Another related reason is the difficulty of having multiple processes scanning to different locations in a single file.</div>
+
+<h4>Distributed data objects</h4>
+
+<p>Let&#39;s take a look at <code>nfRaw</code> to see what the object looks like:</p>
+
+<pre><code class="r">nfRaw
+</code></pre>
+
+<pre><code>
+Distributed data object of class &#39;kvLocalDisk&#39; with attributes: 
+
+&#39;ddo&#39; attribute | value
+----------------+--------------------------------------------------------------------------
+ keys           | [empty] call updateAttributes(dat) to get this value
+ totStorageSize | 171.98 MB
+ totObjectSize  | [empty] call updateAttributes(dat) to get this value
+ nDiv           | 466
+ splitSizeDistn | [empty] call updateAttributes(dat) to get this value
+ example        | use kvExample(dat) to get an example subset
+ bsvInfo        | [empty] no BSVs have been specified
+
+&#39;ddf&#39; attribute | value
+----------------+--------------------------------------------------------------------------
+ vars           | dateTimeStr(num), ipLayerProtocol(int), and 16 more
+ transFn        | identity (original data is a data frame)
+ nRow           | [empty] call updateAttributes(dat) to get this value
+ splitRowDistn  | [empty] call updateAttributes(dat) to get this value
+ summary        | [empty] call updateAttributes(dat) to get this value
+
+localDiskConn connection
+  loc=/Users/hafe647/Documents/Code/vastChallenge/data/nfRaw; nBins=0
+</code></pre>
+
+<p><code>nfRaw</code> is a <em>distributed data frame</em> (ddf), and we see several aspects about the data printed.  For example, we see that there are 466 subsets and that the size of the parsed data in native R format is much smaller (<code>totStorageSize</code> = 171.98 MB) than the input text data.  The other attributes will be updated in a moment.</p>
+
+<p>The <code>nfRaw</code> object itself is simply a special R object that contains metadata and pointers to the actual data stored on disk.  For more background on ddf and related objects, see <a href="http://hafen.github.io/datadr/index.html#distributed-data-objects">here</a> and <a href="http://hafen.github.io/datadr/index.html#distributed-data-frames">here</a>, and particularly for ddf objects on local disk, see <a href="http://hafen.github.io/datadr/index.html#medium-disk--multicore">here</a>.</p>
+
+<p>In any subsequent R session, we can &quot;reload&quot; this data object with the following:</p>
+
+<pre><code class="r">nfRaw &lt;- ddf(localDiskConn(&quot;data/nfRaw&quot;))
+</code></pre>
+
+<p>Earlier we saw in the printout of <code>nfRaw</code> that it has many attibutes that have not yet been determined.  We can fix this by calling <code>updateAttributes()</code>:</p>
+
+<pre><code class="r">nfRaw &lt;- updateAttributes(nfRaw, control = clc)
+</code></pre>
+
+<p>Here, through the <code>control</code> parameter, we specified that our local &quot;cluster&quot; we initialized at the beginning of our session should be used for the computation.  The update job takes about 30 seconds on my machine with 8 cores.</p>
+
+<div class="callout callout-danger"><strong>Note: </strong>This and most all other `datadr` methods can operate in a parallel fashion, where the configuration parameters for the parallel environment are specified through a <code>control</code> argument.</div>
+
+<p>Now we can see more meaningful information about our data:</p>
+
+<pre><code class="r">nfRaw
+</code></pre>
+
+<pre><code>
+Distributed data object of class &#39;kvLocalDisk&#39; with attributes: 
+
+&#39;ddo&#39; attribute | value
+----------------+--------------------------------------------------------------------------
+ keys           | keys are available through getKeys(dat)
+ totStorageSize | 171.98 MB
+ totObjectSize  | 2 GB
+ nDiv           | 466
+ splitSizeDistn | use splitSizeDistn(dat) to get distribution
+ example        | use kvExample(dat) to get an example subset
+ bsvInfo        | [empty] no BSVs have been specified
+
+&#39;ddf&#39; attribute | value
+----------------+--------------------------------------------------------------------------
+ vars           | dateTimeStr(num), ipLayerProtocol(int), and 16 more
+ transFn        | identity (original data is a data frame)
+ nRow           | 23258685
+ splitRowDistn  | use splitRowDistn(dat) to get distribution
+ summary        | use summary(dat) to see summaries
+
+localDiskConn connection
+  loc=/Users/hafe647/Documents/Code/vastChallenge/data/nfRaw; nBins=0
+</code></pre>
+
+<p>We now see that there are about 23 million rows of data, and we are supplied, among other things, with summary statistics for the variables in the ddf which we will see in the next section.</p>
+
+<h4>Reading the data in to HDFS</h4>
+
+<p>Before moving on it is worth noting how this data would be read in using Hadoop/HDFS as the backend.  The steps are identical except for the fact that we must first put the data on HDFS and then create an HDFS connection instead of a local disk connection.</p>
+
+<p>To copy the data to HDFS:</p>
+
+<pre><code class="r">library(Rhipe)
+rhinit()
+
+# create directory on HDFS for csv file
+rhmkdir(&quot;/tmp/vast/raw&quot;)
+# copy netflow csv from local disk to /tmp/vast/raw on HDFS
+rhput(&quot;data/raw/nf-week2.csv&quot;, &quot;/tmp/vast/raw&quot;)
+</code></pre>
+
+<p>Now to read the data in as a distributed data frame:</p>
+
+<pre><code class="r">nfRaw &lt;- drRead.csv(hdfsConn(&quot;tmp/vast/raw/nf-week2.csv&quot;, type = &quot;text&quot;), 
+   output = hdfsConn(&quot;/tmp/vast/nfRaw&quot;),
+   postTransFn = nfTransform)
+</code></pre>
+
+</div>
+
+
+<div class='tab-pane' id='ips-data'>
+<h3>IPS Data</h3>
+
+<p>We follow a similar approach for the IPS data.</p>
+
+<pre><code class="r"># take a look at the data
+ipsHead &lt;- read.csv(&quot;data/raw/IPS-syslog-week2.csv&quot;, nrow = 10, stringsAsFactors = FALSE)
+str(ipsHead)
+</code></pre>
+
+<pre><code>&#39;data.frame&#39;:   10 obs. of  13 variables:
+ $ dateTime   : chr  &quot;10/Apr/2013 07:02:35&quot; &quot;10/Apr/2013 07:02:35&quot; &quot;10/Apr/2013 07:02:35&quot; &quot;10/Apr/2013 07:02:35&quot; ...
+ $ priority   : chr  &quot;Info&quot; &quot;Info&quot; &quot;Info&quot; &quot;Info&quot; ...
+ $ operation  : chr  &quot;Built&quot; &quot;Teardown&quot; &quot;Teardown&quot; &quot;Built&quot; ...
+ $ messageCode: chr  &quot;ASA-6-302013&quot; &quot;ASA-6-302014&quot; &quot;ASA-6-302014&quot; &quot;ASA-6-302013&quot; ...
+ $ protocol   : chr  &quot;TCP&quot; &quot;TCP&quot; &quot;TCP&quot; &quot;TCP&quot; ...
+ $ SrcIp      : chr  &quot;172.10.2.35&quot; &quot;172.30.1.104&quot; &quot;172.10.1.246&quot; &quot;172.10.1.138&quot; ...
+ $ destIp     : chr  &quot;10.1.0.75&quot; &quot;10.0.0.14&quot; &quot;10.1.0.77&quot; &quot;10.1.0.100&quot; ...
+ $ srcPort    : int  2507 2651 2504 1893 2506 2260 2673 2509 2261 2507
+ $ destPort   : int  80 80 80 80 80 80 80 80 80 80
+ $ destService: chr  &quot;http&quot; &quot;http&quot; &quot;http&quot; &quot;http&quot; ...
+ $ direction  : chr  &quot;outbound&quot; &quot;outbound&quot; &quot;outbound&quot; &quot;outbound&quot; ...
+ $ flags      : chr  &quot;(empty)&quot; &quot;TCP FINs&quot; &quot;TCP FINs&quot; &quot;(empty)&quot; ...
+ $ command    : chr  &quot;(empty)&quot; &quot;(empty)&quot; &quot;(empty)&quot; &quot;(empty)&quot; ...
+</code></pre>
+
+<p>Here, we have a different date/time input to deal with.  The 
+Actually, it turns out that the <code>lubridate</code> package has a much faster implementation of <code>strptime</code>, called <code>fast_strptime</code>.  To use it, we will first replace <code>&quot;Apr&quot;</code> with <code>&quot;04&quot;</code> in the date/time string, and then call <code>fast_strptime</code> to convert the variable.</p>
+
+<pre><code class="r">ipsHead$dateTime &lt;- gsub(&quot;Apr&quot;, &quot;04&quot;, ipsHead$dateTime)
+ipsHead$dateTime &lt;- fast_strptime(ipsHead$dateTime, format = &quot;%d/%m/%Y %H:%M:%S&quot;, tz = &quot;UTC&quot;)
+</code></pre>
+
+<p>Now we can build this into the transformation function with the additional step of renaming a couple of the columns of data:</p>
+
+<pre><code class="r"># transformation to handle time variable
+ipsTransform &lt;- function(x) {
+   require(lubridate)
+   x$dateTime &lt;- gsub(&quot;Apr&quot;, &quot;04&quot;, x$dateTime)
+   x$dateTime &lt;- fast_strptime(x$dateTime, format = &quot;%d/%m/%Y %H:%M:%S&quot;, tz = &quot;UTC&quot;)
+   names(x)[c(1, 6)] &lt;- c(&quot;time&quot;, &quot;srcIp&quot;)
+   x
+}
+
+# read the data in
+ipsRaw &lt;- drRead.csv(&quot;data/raw/IPS-syslog-week2.csv&quot;,
+   output = localDiskConn(&quot;data/ipsRaw&quot;),
+   postTransFn = ipsTransform)
+</code></pre>
+
+<p>As with the NetFlow data, we can call <code>updateAttributes()</code>:</p>
+
+<pre><code class="r">ipsRaw &lt;- updateAttributes(ipsRaw, control = clc)
+</code></pre>
+
+<pre><code class="r">ipsRaw
+</code></pre>
+
+<pre><code>
+Distributed data object of class &#39;kvLocalDisk&#39; with attributes: 
+
+&#39;ddo&#39; attribute | value
+----------------+--------------------------------------------------------------------------
+ keys           | keys are available through getKeys(dat)
+ totStorageSize | 101.02 MB
+ totObjectSize  | 1.69 GB
+ nDiv           | 333
+ splitSizeDistn | use splitSizeDistn(dat) to get distribution
+ example        | use kvExample(dat) to get an example subset
+ bsvInfo        | [empty] no BSVs have been specified
+
+&#39;ddf&#39; attribute | value
+----------------+--------------------------------------------------------------------------
+ vars           | time(POS), priority(POS), operation(cha), messageCode(cha), and 9 more
+ transFn        | identity (original data is a data frame)
+ nRow           | 16600931
+ splitRowDistn  | use splitRowDistn(dat) to get distribution
+ summary        | use summary(dat) to see summaries
+
+localDiskConn connection
+  loc=/Users/hafe647/Documents/Code/vastChallenge/data/ipsRaw; nBins=0
+</code></pre>
+
+</div>
+
+
+<div class='tab-pane' id='big-brother-data'>
+<h3>Big Brother Data</h3>
+
+<p>The &quot;big brother&quot; data is handled similarly:</p>
+
+<pre><code class="r"># look at first few rows
+bbHead &lt;- read.csv(&quot;data/raw/bb-week2.csv&quot;, nrows = 10, stringsAsFactors = FALSE)
+str(bbHead)
+</code></pre>
+
+<pre><code>&#39;data.frame&#39;:   10 obs. of  14 variables:
+ $ id                        : int  29903 29911 29913 29920 29932 29933 29951 29956 29967 29975
+ $ hostname                  : chr  &quot;web02b.bigmkt2.com&quot; &quot;web03d.bigmkt3.com&quot; &quot;web01d.bigmkt1.com&quot; &quot;mail02.bigmkt2.com&quot; ...
+ $ servicename               : chr  &quot;cpu&quot; &quot;cpu&quot; &quot;cpu&quot; &quot;cpu&quot; ...
+ $ currenttime               : int  1365605774 1365605790 1365605791 1365605795 1365605801 1365605801 1365605827 1365605832 1365605867 1365605885
+ $ statusVal                 : int  1 1 1 2 2 1 1 1 1 1
+ $ bbcontent                 : chr  &quot; Wed Apr 10 07:56:14 PDT 2013 [WEB02B.BIGMKT2.COM] up: 18 days, 1 users, 38 procs, load=0%, PhysicalMem: 4GB(14%)\n\n\n\nMemory&quot;| __truncated__ &quot; Wed Apr 10 07:56:29 PDT 2013 [WEB03D.BIGMKT3.COM] up: 18 days, 1 users, 38 procs, load=0%, PhysicalMem: 4GB(14%)\n\n\n\nMemory&quot;| __truncated__ &quot; Wed Apr 10 07:56:31 PDT 2013 [WEB01D.BIGMKT1.COM] up: 18 days, 1 users, 39 procs, load=0%, PhysicalMem: 4GB(14%)\n\n\n\nMemory&quot;| __truncated__ &quot; Wed Apr 10 07:56:35 PDT 2013 [MAIL02.BIGMKT2.COM] up: 0:46, 1 users, 58 procs, load=2%, PhysicalMem: 4GB(25%)\n\n&amp;yellow Machi&quot;| __truncated__ ...
+ $ receivedfrom              : chr  &quot;172.20.0.6&quot; &quot;172.30.0.8&quot; &quot;172.10.0.8&quot; &quot;172.20.0.3&quot; ...
+ $ diskUsagePercent          : logi  NA NA NA NA NA NA ...
+ $ pageFileUsagePercent      : logi  NA NA NA NA NA NA ...
+ $ numProcs                  : int  38 38 39 58 61 38 39 24 44 43
+ $ loadAveragePercent        : int  0 0 0 2 1 0 0 0 0 1
+ $ physicalMemoryUsagePercent: int  14 14 14 25 27 14 14 11 16 17
+ $ connMade                  : logi  NA NA NA NA NA NA ...
+ $ parsedDate                : chr  &quot;2013-04-10 07:56:14&quot; &quot;2013-04-10 07:56:30&quot; &quot;2013-04-10 07:56:31&quot; &quot;2013-04-10 07:56:35&quot; ...
+</code></pre>
+
+<p>There is one column that is very large in this data.  We have a similar task as before of parsing the time variale and removing some columns:</p>
+
+<pre><code class="r"># transformation to handle time parsing
+bbTransform &lt;- function(x) {
+   x$time &lt;- as.POSIXct(x$parsedDate, tz = &quot;UTC&quot;)
+   x[,setdiff(names(x), c(&quot;currenttime&quot;, &quot;parsedDate&quot;))]
+}
+
+bbRaw &lt;- drRead.csv(&quot;data/raw/bb-week2.csv&quot;, 
+   output = localDiskConn(&quot;data/bbRaw&quot;), 
+   postTransFn = bbTransform,
+   autoColClasses = FALSE)
+bbRaw &lt;- updateAttributes(bbRaw, control = clc)
+</code></pre>
+
+<pre><code class="r">bbRaw
+</code></pre>
+
+<pre><code>
+Distributed data object of class &#39;kvLocalDisk&#39; with attributes: 
+
+&#39;ddo&#39; attribute | value
+----------------+--------------------------------------------------------------------------
+ keys           | keys are available through getKeys(dat)
+ totStorageSize | 55.18 MB
+ totObjectSize  | 1.07 GB
+ nDiv           | 44
+ splitSizeDistn | use splitSizeDistn(dat) to get distribution
+ example        | use kvExample(dat) to get an example subset
+ bsvInfo        | [empty] no BSVs have been specified
+
+&#39;ddf&#39; attribute | value
+----------------+--------------------------------------------------------------------------
+ vars           | id(int), hostname(fac), servicename(fac), statusVal(int), and 9 more
+ transFn        | identity (original data is a data frame)
+ nRow           | 2165507
+ splitRowDistn  | use splitRowDistn(dat) to get distribution
+ summary        | use summary(dat) to see summaries
+
+localDiskConn connection
+  loc=/Users/hafe647/Documents/Code/vastChallenge/data/bbRaw; nBins=0
+</code></pre>
+
+</div>
+
+
+<div class='tab-pane' id='sourcedestination-ip-frequency'>
+<h3>Source/Destination IP Frequency</h3>
+
+<p>We&#39;ll start exploring the data by looking at some summaries of the NetFlow data by studying our <code>nfRaw</code> data object.  As we saw before, simply printing out the object gives us some high-level information about the data:</p>
+
+<pre><code class="r"># load our data back if we are in a new session
+nfRaw &lt;- ddf(localDiskConn(&quot;data/nfRaw&quot;))
+nfRaw
+</code></pre>
+
+<pre><code>
+Distributed data object of class &#39;kvLocalDisk&#39; with attributes: 
+
+&#39;ddo&#39; attribute | value
+----------------+--------------------------------------------------------------------------
+ keys           | keys are available through getKeys(dat)
+ totStorageSize | 171.98 MB
+ totObjectSize  | 2 GB
+ nDiv           | 466
+ splitSizeDistn | use splitSizeDistn(dat) to get distribution
+ example        | use kvExample(dat) to get an example subset
+ bsvInfo        | [empty] no BSVs have been specified
+
+&#39;ddf&#39; attribute | value
+----------------+--------------------------------------------------------------------------
+ vars           | dateTimeStr(num), ipLayerProtocol(int), and 16 more
+ transFn        | identity (original data is a data frame)
+ nRow           | 23258685
+ splitRowDistn  | use splitRowDistn(dat) to get distribution
+ summary        | use summary(dat) to see summaries
+
+localDiskConn connection
+  loc=/Users/hafe647/Documents/Code/vastChallenge/data/nfRaw; nBins=0
+</code></pre>
+
+<p>Since <code>nfRaw</code> is a distributed data frame, we can look at various aspects of the data frame through familiar R methods.</p>
+
+<p>We can see variable names:</p>
+
+<pre><code class="r"># see what variables are available
+names(nfRaw)
+</code></pre>
+
+<pre><code> [1] &quot;dateTimeStr&quot;               &quot;ipLayerProtocol&quot;           &quot;ipLayerProtocolCode&quot;      
+ [4] &quot;firstSeenSrcIp&quot;            &quot;firstSeenDestIp&quot;           &quot;firstSeenSrcPort&quot;         
+ [7] &quot;firstSeenDestPort&quot;         &quot;moreFragments&quot;             &quot;contFragments&quot;            
+[10] &quot;durationSeconds&quot;           &quot;firstSeenSrcPayloadBytes&quot;  &quot;firstSeenDestPayloadBytes&quot;
+[13] &quot;firstSeenSrcTotalBytes&quot;    &quot;firstSeenDestTotalBytes&quot;   &quot;firstSeenSrcPacketCount&quot;  
+[16] &quot;firstSeenDestPacketCount&quot;  &quot;recordForceOut&quot;            &quot;date&quot;                     
+</code></pre>
+
+<p>We can get number of rows:</p>
+
+<pre><code class="r"># get total number of rows
+nrow(nfRaw)
+</code></pre>
+
+<pre><code>NULL
+</code></pre>
+
+<p>We can grab the first subset and look at its structure:</p>
+
+<pre><code class="r"># look at the structure of the first key-value pair
+str(nfRaw[[1]])
+</code></pre>
+
+<pre><code>List of 2
+ $ : num 343
+ $ :&#39;data.frame&#39;:   50000 obs. of  18 variables:
+  ..$ dateTimeStr              : num [1:50000] 2.01e+13 2.01e+13 2.01e+13 2.01e+13 2.01e+13 ...
+  ..$ ipLayerProtocol          : int [1:50000] 6 6 6 6 6 6 6 6 6 6 ...
+  ..$ ipLayerProtocolCode      : chr [1:50000] &quot;TCP&quot; &quot;TCP&quot; &quot;TCP&quot; &quot;TCP&quot; ...
+  ..$ firstSeenSrcIp           : chr [1:50000] &quot;10.15.7.85&quot; &quot;10.15.7.85&quot; &quot;10.15.7.85&quot; &quot;10.15.7.85&quot; ...
+  ..$ firstSeenDestIp          : chr [1:50000] &quot;172.30.0.4&quot; &quot;172.30.0.4&quot; &quot;172.30.0.4&quot; &quot;172.30.0.4&quot; ...
+  ..$ firstSeenSrcPort         : int [1:50000] 16165 16164 16643 16162 16163 16642 27444 16436 17052 16437 ...
+  ..$ firstSeenDestPort        : int [1:50000] 80 80 80 80 80 80 80 80 80 80 ...
+  ..$ moreFragments            : int [1:50000] 0 0 0 0 0 0 0 0 0 0 ...
+  ..$ contFragments            : int [1:50000] 0 0 0 0 0 0 0 0 0 0 ...
+  ..$ durationSeconds          : int [1:50000] 5 5 2 5 5 2 0 3 0 3 ...
+  ..$ firstSeenSrcPayloadBytes : int [1:50000] 19 19 19 19 19 19 19 19 19 19 ...
+  ..$ firstSeenDestPayloadBytes: int [1:50000] 503 503 503 503 503 503 503 503 503 503 ...
+  ..$ firstSeenSrcTotalBytes   : int [1:50000] 297 297 297 297 297 297 297 297 297 297 ...
+  ..$ firstSeenDestTotalBytes  : int [1:50000] 619 619 619 619 619 619 619 619 619 619 ...
+  ..$ firstSeenSrcPacketCount  : int [1:50000] 5 5 5 5 5 5 5 5 5 5 ...
+  ..$ firstSeenDestPacketCount : int [1:50000] 2 2 2 2 2 2 2 2 2 2 ...
+  ..$ recordForceOut           : int [1:50000] 0 0 0 0 0 0 0 0 0 0 ...
+  ..$ date                     : POSIXct[1:50000], format: &quot;2013-04-14 14:42:14&quot; &quot;2013-04-14 14:42:14&quot; ...
+</code></pre>
+
+<p>We can view summaries of the variables in the distributed data frame:</p>
+
+<pre><code class="r"># look at summaries (computed from updateAttributes)
+summary(nfRaw)
+</code></pre>
+
+<pre><code>     dateTimeStr        ipLayerProtocol   ipLayerProtocolCode      firstSeenSrcIp      
+ --------------------  -----------------  -------------------  ----------------------- 
+  missing :         0   missing :      0          levels : 3           levels : 1390   
+      min : 2.013e+13       min :      1         missing : 0          missing : 0      
+      max : 2.013e+13       max :     17  &gt; freqTable head &lt;     &gt; freqTable head &lt;    
+     mean : 2.013e+13      mean :   6.09    TCP : 23062987     10.138.214.18 : 1300759 
+  std dev :    317466   std dev : 0.9961    UDP :   191395     10.170.32.181 : 1259035 
+ skewness :     4.299  skewness :  10.79  OTHER :     4303     10.170.32.110 : 1257747 
+ kurtosis :      35.2  kurtosis :  118.5                        10.10.11.102 : 1251990 
+ --------------------  -----------------  -------------------  ----------------------- 
+    firstSeenDestIp      firstSeenSrcPort   firstSeenDestPort     moreFragments    
+ ---------------------  ------------------  -----------------  ------------------- 
+         levels : 1277   missing :       0   missing :     0    missing :        0 
+        missing : 0          min :       0       min :     0        min :        0 
+  &gt; freqTable head &lt;         max :   65534       max : 65534        max :        1 
+  172.30.0.4 : 8122427      mean :   30523      mean : 595.9       mean : 1.75e-05 
+  172.10.0.4 : 4652570   std dev :   18235   std dev :  4261    std dev : 0.004183 
+  172.20.0.4 : 4341038  skewness : 0.05421  skewness : 10.51   skewness :      239 
+ 172.20.0.15 : 4029911  kurtosis :   1.809  kurtosis : 121.3   kurtosis :    57145 
+ ---------------------  ------------------  -----------------  ------------------- 
+    contFragments      durationSeconds   firstSeenSrcPayloadBytes 
+ --------------------  ----------------  ------------------------ 
+  missing :         0   missing :     0      missing :       0    
+      min :         0       min :     0          min :       0    
+      max :         1       max :  1800          max : 3050256    
+     mean : 1.741e-05      mean : 11.36         mean :   691.6    
+  std dev :  0.004173   std dev : 37.15      std dev :   38955    
+ skewness :     239.6  skewness : 10.48     skewness :   67.35    
+ kurtosis :     57427  kurtosis :   221     kurtosis :    4739    
+ --------------------  ----------------  ------------------------ 
+ firstSeenDestPayloadBytes  firstSeenSrcTotalBytes  firstSeenDestTotalBytes 
+ -------------------------  ----------------------  ----------------------- 
+     missing :       0         missing :       0       missing :       0    
+         min :       0             min :      43           min :       0    
+         max : 3129878             max : 3326672           max : 3762470    
+        mean :   22561            mean :    1497          mean :   23576    
+     std dev :  245130         std dev :   41306       std dev :  254859    
+    skewness :   11.84        skewness :    65.7      skewness :   11.84    
+    kurtosis :     143        kurtosis :    4598      kurtosis :     143    
+ -------------------------  ----------------------  ----------------------- 
+ firstSeenSrcPacketCount  firstSeenDestPacketCount  recordForceOut 
+ -----------------------  ------------------------  -------------- 
+     missing :     0           missing :     0       missing :   0 
+         min :     1               min :     0           min :   0 
+         max : 13033               max : 13969           max :   0 
+        mean : 14.51              mean : 18.64          mean :   0 
+     std dev : 109.3           std dev : 182.4       std dev :   0 
+    skewness : 14.66          skewness : 12.02      skewness : NaN 
+    kurtosis : 334.4          kurtosis : 155.5      kurtosis : NaN 
+ -----------------------  ------------------------  -------------- 
+           date           
+ ------------------------ 
+ missing :              0 
+     min : 13-04-10 06:50 
+     max : 13-04-15 10:00 
+
+
+
+
+ ------------------------ 
+</code></pre>
+
+<p>The <code>summary()</code> method provides a nice overview of the variables in our distributed data frame.  For categorical variables, it provides a frequency table, and for numeric variables, it provides summary statistics such as moments (mean, standard deviation, etc.), range, etc.</p>
+
+<div class="callout callout-danger"><strong>Note: </strong>A good place to start in an exploratory analysis is to look at summary statistics.  The summary information that comes with distributed data frames provides a simple way to start looking at the data.</div>
+
+<p>There are several insights we can get from the data by simply scanning the summary output printed above.  For example, the variable <code>ipLayerProtocolCode</code> tells us that the vast majority of the connections monitored are [TCP][TCP-wik] connections, while [UDP][UDP-wik] connections make up a little less than 1% of the traffic.  Also, all other protocols are rolled up into an &quot;other&quot; category.  We also see that timestamp of the data ranges from April 9, 2013 to April 15.  We also see that the variable <code>recordForceOut</code> is all zeros (min and max are zero), meaning that there are no  (recall that all variables are described <a href="docs/data/NetFlow_NetworkHealth.pdf">here</a>).  </p>
+
+<p>There are other simple insights we can gain from scanning this the summary output, but we can get better insights by visualizing the summaries in more detail.</p>
+
+<h4>First seen source IP</h4>
+
+<p>We want to better understand the distribution of first seen source IP addresses in the data.  Note that in the summary printout above, we only see the top 4 IP addresses in the summary info for <code>firstSeenSrcIp</code>.  We can extract the full frequency table from the summary with the following:</p>
+
+<pre><code class="r"># grab the full frequency table for firstSeenSrcIp
+srcIpFreq &lt;- summary(nfRaw)$firstSeenSrcIp$freqTable
+# look at the top few IPs
+head(srcIpFreq)
+</code></pre>
+
+<pre><code>           value    Freq
+35 10.138.214.18 1300759
+65 10.170.32.181 1259035
+64 10.170.32.110 1257747
+24  10.10.11.102 1251990
+86 10.247.106.27 1233811
+28  10.12.15.152 1148983
+</code></pre>
+
+<p>To get more information about the IP addresses in this table, we can rely on the list of hosts provided with the raw data.  We have included this data, called <code>hostListOrig</code> with the <code>cyberTools</code> package:</p>
+
+<pre><code class="r">head(hostListOrig)
+</code></pre>
+
+<pre><code>           IP                  hostName              type externalIP
+1  172.10.0.2          dc01.bigmkt1.com Domain controller   10.0.2.2
+2  172.10.0.3        mail01.bigmkt1.com              SMTP   10.0.2.3
+3  172.10.0.4         web01.bigmkt1.com              HTTP   10.0.2.4
+4 172.10.0.40 administrator.bigmkt1.com     Administrator       &lt;NA&gt;
+5  172.10.0.5        web01a.bigmkt1.com              HTTP   10.0.2.5
+6  172.10.0.7        web01c.bigmkt1.com              HTTP   10.0.2.6
+</code></pre>
+
+<p>This data provides additional information about IP addresses in our data, such as the type of machine and the name of the host.  This data provides a nice augmentation for our frequency table.  We can merge it in with the <code>mergeHostList()</code> function provided with <code>cyberTools</code>.  This function expects to recieve an input data frame and the name of the variable that contains the IP addresses to be merged to.  We also specify <code>original = TRUE</code> so that the function uses the original host list provided with the data, as opposed to incorporating modifications we will discover.</p>
+
+<pre><code class="r">srcIpFreq &lt;- mergeHostList(srcIpFreq, &quot;value&quot;, original = TRUE)
+head(srcIpFreq)
+</code></pre>
+
+<pre><code>         value   Freq             hostName        type externalIP
+1   172.10.0.4 151100    web01.bigmkt1.com        HTTP   10.0.2.4
+2   172.30.0.4  93584    web03.bigmkt3.com        HTTP   10.0.4.4
+3   172.20.0.4  47719    web02.bigmkt2.com        HTTP   10.0.3.4
+4  172.20.0.15  38855   web02l.bigmkt2.com        HTTP  10.0.3.15
+5  172.10.2.66  29283 wss1-319.bigmkt1.com Workstation       &lt;NA&gt;
+6 172.30.1.223  29270 wss3-223.bigmkt3.com Workstation       &lt;NA&gt;
+</code></pre>
+
+<p>Now we can see, for example, what types of hosts are in the data:</p>
+
+<pre><code class="r"># see how many of each type we have
+table(srcIpFreq$type)
+</code></pre>
+
+<pre><code>
+    Administrator Domain controller          External              HTTP       Other 172.* 
+                1                 3               164                16               103 
+             SMTP       Workstation 
+                3              1100 
+</code></pre>
+
+<p>Most are workstations.  There are 103 &quot;other 177.*&quot; addresses that warrant further scrutiny.</p>
+
+<h4>A potential issue with the provided host list</h4>
+
+<p>From the documentation, it appears that IPs that are inside the network are of the form <code>172.x.x.x</code>.  <code>mergeHostList()</code> finds IPs that are of this form that are not listed in <code>hostListOrig</code> and gives them the classification <code>&quot;Other 172.*&quot;</code>.  Let&#39;s look at these:</p>
+
+<pre><code class="r"># look at 172.x addresses that aren&#39;t in our host list
+sort(subset(srcIpFreq, type == &quot;Other 172.*&quot;)$value)
+</code></pre>
+
+<pre><code>  [1] &quot;172.0.0.1&quot;    &quot;172.10.0.50&quot;  &quot;172.10.0.6&quot;   &quot;172.20.1.101&quot; &quot;172.20.1.102&quot;
+  [6] &quot;172.20.1.103&quot; &quot;172.20.1.104&quot; &quot;172.20.1.105&quot; &quot;172.20.1.106&quot; &quot;172.20.1.107&quot;
+ [11] &quot;172.20.1.108&quot; &quot;172.20.1.109&quot; &quot;172.20.1.110&quot; &quot;172.20.1.111&quot; &quot;172.20.1.112&quot;
+ [16] &quot;172.20.1.113&quot; &quot;172.20.1.114&quot; &quot;172.20.1.115&quot; &quot;172.20.1.116&quot; &quot;172.20.1.117&quot;
+ [21] &quot;172.20.1.118&quot; &quot;172.20.1.119&quot; &quot;172.20.1.120&quot; &quot;172.20.1.121&quot; &quot;172.20.1.122&quot;
+ [26] &quot;172.20.1.123&quot; &quot;172.20.1.124&quot; &quot;172.20.1.125&quot; &quot;172.20.1.126&quot; &quot;172.20.1.127&quot;
+ [31] &quot;172.20.1.128&quot; &quot;172.20.1.129&quot; &quot;172.20.1.130&quot; &quot;172.20.1.131&quot; &quot;172.20.1.132&quot;
+ [36] &quot;172.20.1.133&quot; &quot;172.20.1.134&quot; &quot;172.20.1.135&quot; &quot;172.20.1.136&quot; &quot;172.20.1.137&quot;
+ [41] &quot;172.20.1.138&quot; &quot;172.20.1.139&quot; &quot;172.20.1.140&quot; &quot;172.20.1.141&quot; &quot;172.20.1.142&quot;
+ [46] &quot;172.20.1.143&quot; &quot;172.20.1.144&quot; &quot;172.20.1.145&quot; &quot;172.20.1.146&quot; &quot;172.20.1.147&quot;
+ [51] &quot;172.20.1.148&quot; &quot;172.20.1.149&quot; &quot;172.20.1.150&quot; &quot;172.20.1.151&quot; &quot;172.20.1.152&quot;
+ [56] &quot;172.20.1.153&quot; &quot;172.20.1.154&quot; &quot;172.20.1.155&quot; &quot;172.20.1.156&quot; &quot;172.20.1.157&quot;
+ [61] &quot;172.20.1.158&quot; &quot;172.20.1.159&quot; &quot;172.20.1.160&quot; &quot;172.20.1.161&quot; &quot;172.20.1.162&quot;
+ [66] &quot;172.20.1.163&quot; &quot;172.20.1.164&quot; &quot;172.20.1.165&quot; &quot;172.20.1.166&quot; &quot;172.20.1.167&quot;
+ [71] &quot;172.20.1.168&quot; &quot;172.20.1.169&quot; &quot;172.20.1.170&quot; &quot;172.20.1.171&quot; &quot;172.20.1.172&quot;
+ [76] &quot;172.20.1.173&quot; &quot;172.20.1.174&quot; &quot;172.20.1.175&quot; &quot;172.20.1.176&quot; &quot;172.20.1.177&quot;
+ [81] &quot;172.20.1.178&quot; &quot;172.20.1.179&quot; &quot;172.20.1.180&quot; &quot;172.20.1.181&quot; &quot;172.20.1.182&quot;
+ [86] &quot;172.20.1.183&quot; &quot;172.20.1.184&quot; &quot;172.20.1.185&quot; &quot;172.20.1.186&quot; &quot;172.20.1.187&quot;
+ [91] &quot;172.20.1.188&quot; &quot;172.20.1.189&quot; &quot;172.20.1.190&quot; &quot;172.20.1.191&quot; &quot;172.20.1.192&quot;
+ [96] &quot;172.20.1.193&quot; &quot;172.20.1.194&quot; &quot;172.20.1.195&quot; &quot;172.20.1.196&quot; &quot;172.20.1.197&quot;
+[101] &quot;172.20.1.198&quot; &quot;172.20.1.199&quot; &quot;172.20.1.200&quot;
+</code></pre>
+
+<p>There is a whole block of IPs: <code>172.20.1.101</code> - <code>172.20.1.200</code> that is in this list, along with <code>172.0.0.1</code>, <code>172.10.0.50</code>, <code>172.10.0.6</code>.  </p>
+
+<p>Looking at the <a href="docs/data/NetworkArhictecture.pdf">network diagram</a> provided with the data, <code>172.0.0.1</code> address appears to be a gateway router switch.</p>
+
+<p>We will see that <code>172.10.0.6</code> is the most common address that is sending big brother reports.</p>
+
+<p>The block of 100 hosts uncategorized &quot;<code>172.20.1.x</code>&quot; hosts, however, is curious.  Let&#39;s see if there are IPs of form <code>172.20.1.x</code> are in <code>hostListOrig</code>:</p>
+
+<pre><code class="r">hostListOrig$IP[grepl(&quot;172\\.20\\.1&quot;, hostListOrig$IP)]
+</code></pre>
+
+<pre><code>  [1] &quot;172.20.1.1&quot;   &quot;172.20.1.10&quot;  &quot;172.20.1.100&quot; &quot;172.20.1.11&quot;  &quot;172.20.1.12&quot; 
+  [6] &quot;172.20.1.13&quot;  &quot;172.20.1.14&quot;  &quot;172.20.1.15&quot;  &quot;172.20.1.16&quot;  &quot;172.20.1.17&quot; 
+ [11] &quot;172.20.1.18&quot;  &quot;172.20.1.19&quot;  &quot;172.20.1.2&quot;   &quot;172.20.1.20&quot;  &quot;172.20.1.201&quot;
+ [16] &quot;172.20.1.202&quot; &quot;172.20.1.203&quot; &quot;172.20.1.204&quot; &quot;172.20.1.205&quot; &quot;172.20.1.206&quot;
+ [21] &quot;172.20.1.207&quot; &quot;172.20.1.208&quot; &quot;172.20.1.209&quot; &quot;172.20.1.21&quot;  &quot;172.20.1.210&quot;
+ [26] &quot;172.20.1.211&quot; &quot;172.20.1.212&quot; &quot;172.20.1.213&quot; &quot;172.20.1.214&quot; &quot;172.20.1.215&quot;
+ [31] &quot;172.20.1.216&quot; &quot;172.20.1.217&quot; &quot;172.20.1.218&quot; &quot;172.20.1.219&quot; &quot;172.20.1.22&quot; 
+ [36] &quot;172.20.1.220&quot; &quot;172.20.1.221&quot; &quot;172.20.1.222&quot; &quot;172.20.1.223&quot; &quot;172.20.1.224&quot;
+ [41] &quot;172.20.1.225&quot; &quot;172.20.1.226&quot; &quot;172.20.1.227&quot; &quot;172.20.1.228&quot; &quot;172.20.1.229&quot;
+ [46] &quot;172.20.1.23&quot;  &quot;172.20.1.230&quot; &quot;172.20.1.231&quot; &quot;172.20.1.232&quot; &quot;172.20.1.233&quot;
+ [51] &quot;172.20.1.234&quot; &quot;172.20.1.235&quot; &quot;172.20.1.236&quot; &quot;172.20.1.237&quot; &quot;172.20.1.238&quot;
+ [56] &quot;172.20.1.239&quot; &quot;172.20.1.24&quot;  &quot;172.20.1.240&quot; &quot;172.20.1.241&quot; &quot;172.20.1.242&quot;
+ [61] &quot;172.20.1.243&quot; &quot;172.20.1.244&quot; &quot;172.20.1.245&quot; &quot;172.20.1.246&quot; &quot;172.20.1.247&quot;
+ [66] &quot;172.20.1.248&quot; &quot;172.20.1.249&quot; &quot;172.20.1.25&quot;  &quot;172.20.1.250&quot; &quot;172.20.1.251&quot;
+ [71] &quot;172.20.1.252&quot; &quot;172.20.1.253&quot; &quot;172.20.1.254&quot; &quot;172.20.1.26&quot;  &quot;172.20.1.27&quot; 
+ [76] &quot;172.20.1.28&quot;  &quot;172.20.1.29&quot;  &quot;172.20.1.3&quot;   &quot;172.20.1.30&quot;  &quot;172.20.1.31&quot; 
+ [81] &quot;172.20.1.32&quot;  &quot;172.20.1.33&quot;  &quot;172.20.1.34&quot;  &quot;172.20.1.35&quot;  &quot;172.20.1.36&quot; 
+ [86] &quot;172.20.1.37&quot;  &quot;172.20.1.38&quot;  &quot;172.20.1.39&quot;  &quot;172.20.1.4&quot;   &quot;172.20.1.40&quot; 
+ [91] &quot;172.20.1.41&quot;  &quot;172.20.1.42&quot;  &quot;172.20.1.43&quot;  &quot;172.20.1.44&quot;  &quot;172.20.1.45&quot; 
+ [96] &quot;172.20.1.46&quot;  &quot;172.20.1.47&quot;  &quot;172.20.1.48&quot;  &quot;172.20.1.49&quot;  &quot;172.20.1.5&quot;  
+[101] &quot;172.20.1.50&quot;  &quot;172.20.1.51&quot;  &quot;172.20.1.52&quot;  &quot;172.20.1.53&quot;  &quot;172.20.1.54&quot; 
+[106] &quot;172.20.1.55&quot;  &quot;172.20.1.56&quot;  &quot;172.20.1.57&quot;  &quot;172.20.1.58&quot;  &quot;172.20.1.59&quot; 
+[111] &quot;172.20.1.6&quot;   &quot;172.20.1.60&quot;  &quot;172.20.1.61&quot;  &quot;172.20.1.62&quot;  &quot;172.20.1.63&quot; 
+[116] &quot;172.20.1.64&quot;  &quot;172.20.1.65&quot;  &quot;172.20.1.66&quot;  &quot;172.20.1.67&quot;  &quot;172.20.1.68&quot; 
+[121] &quot;172.20.1.69&quot;  &quot;172.20.1.7&quot;   &quot;172.20.1.70&quot;  &quot;172.20.1.71&quot;  &quot;172.20.1.72&quot; 
+[126] &quot;172.20.1.73&quot;  &quot;172.20.1.74&quot;  &quot;172.20.1.75&quot;  &quot;172.20.1.76&quot;  &quot;172.20.1.77&quot; 
+[131] &quot;172.20.1.78&quot;  &quot;172.20.1.79&quot;  &quot;172.20.1.8&quot;   &quot;172.20.1.80&quot;  &quot;172.20.1.81&quot; 
+[136] &quot;172.20.1.82&quot;  &quot;172.20.1.83&quot;  &quot;172.20.1.84&quot;  &quot;172.20.1.85&quot;  &quot;172.20.1.86&quot; 
+[141] &quot;172.20.1.87&quot;  &quot;172.20.1.88&quot;  &quot;172.20.1.89&quot;  &quot;172.20.1.9&quot;   &quot;172.20.1.90&quot; 
+[146] &quot;172.20.1.91&quot;  &quot;172.20.1.92&quot;  &quot;172.20.1.93&quot;  &quot;172.20.1.94&quot;  &quot;172.20.1.95&quot; 
+[151] &quot;172.20.1.96&quot;  &quot;172.20.1.97&quot;  &quot;172.20.1.98&quot;  &quot;172.20.1.99&quot; 
+</code></pre>
+
+<p>It looks like everything in the address space but <code>101-200</code> is in the list.  Checking with the data provider, these addresses are workstations that got left off of the host list.</p>
+
+<div class="callout callout-danger"><strong>Note: </strong>Although this is a minor issue that we were able to rectify quickly by speaking with the people familiar with the network, this goes to show how important it is to have the tools and the willingness to flexibly look at the data, as well as people to converse with who are familiar with the environment from which the data is being generated.  Real-world data is never perfect - each new data set has its own new challenges in terms of understanding the data and its integrity.  We have barely begun our analysis and have only looked at some simple summaries, and already have a good insight that will help us in subsequent analyses.</div>
+
+<p>With this knowledge, we have updated <code>mergeHostList()</code> to assign the 100 unclassified <code>172.20.1.x</code> hosts as workstations, and <code>172.0.0.1</code> as the gateway switch.</p>
+
+<pre><code class="r">srcIpFreq &lt;- summary(nfRaw)$firstSeenSrcIp$freqTable
+srcIpFreq &lt;- mergeHostList(srcIpFreq, &quot;value&quot;)
+table(srcIpFreq$type)
+</code></pre>
+
+<pre><code>
+    Administrator Domain controller          External              HTTP       Other 172.* 
+                1                 3               164                16                 3 
+             SMTP       Workstation 
+                3              1200 
+</code></pre>
+
+<h4>Distribution of source IP frequency by type</h4>
+
+<p>Now let&#39;s get a better idea of the distribution the number of times an IP address is present as first seen source IP.  A nice way to do this visually is to create a <a href="https://www.stat.auckland.ac.nz/%7Eihaka/787/lectures-quantiles.pdf">quantile plot</a>, which basically plots the sorted data vs. where the what fraction of the data is smaller than the sorted point.</p>
+
+<pre><code class="r"># for each type, get the quantiles
+srcIpFreqQuant &lt;- groupQuantile(srcIpFreq, &quot;type&quot;)
+
+# quantile plot by host type
+xyplot(Freq ~ p | type, data = srcIpFreqQuant, 
+   layout = c(7, 1), type = c(&quot;p&quot;, &quot;g&quot;), 
+   between = list(x = 0.25), 
+   scales = list(y = list(log = 10)),
+   xlab = &quot;Sample Fraction&quot;,
+   ylab = &quot;Number of Connections as Source IP&quot;
+)
+</code></pre>
+
+<p><img src="figures/knitr/unnamed-chunk-14.png" alt="plot of chunk unnamed-chunk-14"> </p>
+
+<p>There are some interesting observations we can make from this plot:</p>
+
+<ul>
+<li>There are 4 web servers (HTTP) with 3 orders of magnitude more traffic than the other web servers</li>
+<li>The distribution of number of times a workstation appears as first seen source IP is quite regular except for a few large outliers</li>
+<li>There are some interesting clumps of points in the distribution of External IPs</li>
+</ul>
+
+<h4>Distribution of source and destination IP by type</h4>
+
+<p>It would be interesting to also add in the distribution of the number times an address shows up as first seen destination IP address.</p>
+
+<p>We can follow the same process as we did with first seen source IP:</p>
+
+<pre><code class="r">destIpFreq &lt;- summary(nfRaw)$firstSeenDestIp$freqTable
+destIpFreq &lt;- mergeHostList(destIpFreq, &quot;value&quot;, original = TRUE)
+</code></pre>
+
+<p>Let&#39;s look to make sure that all IPs were matched (if an IP was not matched, it will be given <code>type = &quot;Other&quot;</code>):</p>
+
+<pre><code class="r">subset(destIpFreq, type == &quot;Other&quot;)
+</code></pre>
+
+<pre><code>               value   Freq hostName  type externalIP
+1125 239.255.255.250 174793     &lt;NA&gt; Other       &lt;NA&gt;
+1141 255.255.255.255    306     &lt;NA&gt; Other       &lt;NA&gt;
+1176  169.254.192.72      2     &lt;NA&gt; Other       &lt;NA&gt;
+1183     224.0.0.252    226     &lt;NA&gt; Other       &lt;NA&gt;
+1184 169.254.249.224      1     &lt;NA&gt; Other       &lt;NA&gt;
+</code></pre>
+
+<p>There are a few that don&#39;t get matched.  These are interesting IPs.  After some research, the following seem like good explanations for these:</p>
+
+<ul>
+<li><code>169.254.x.x</code> are most-likely link-local IPs from <a href="http://en.wikipedia.org/wiki/Link-local_address">Automatic Private IP Addressesing (APIPA)</a>, or they could be due to a router malfunction - this is a very small number as compared to the total number of connections</li>
+<li><code>224.0.0.252</code> is most-likely <a href="http://en.wikipedia.org/wiki/Link-local_Multicast_Name_Resolution">Link Local Multicast Name Resolution (LLMNR)</a> - this is a Windows thing</li>
+<li><code>239.255.255.250</code> is most-likely <a href="http://en.wikipedia.org/wiki/Simple_Service_Discovery_Protocol">Simple Service Discovery Protocol (SSDP)</a></li>
+<li><code>255.255.255.255</code> is often <a href="http://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol">Dynamic Host Configuration Protocol (DHCP)</a></li>
+</ul>
+
+<p>These are all things we will want to be aware of in subsequent analyses.</p>
+
+<p>For now, we will lump all of them into an &quot;other&quot; category.  We have modified <code>mergeHostList()</code> to do this without the <code>original = TRUE</code> setting we used before:</p>
+
+<pre><code class="r">destIpFreq &lt;- summary(nfRaw)$firstSeenDestIp$freqTable
+destIpFreq &lt;- mergeHostList(destIpFreq, &quot;value&quot;)
+</code></pre>
+
+<p>Let&#39;s check the &quot;Other 172.*&quot; addresses in the data:</p>
+
+<pre><code class="r">subset(destIpFreq, type == &quot;Other 172.*&quot;)
+</code></pre>
+
+<pre><code>             value  Freq      hostName        type externalIP
+17 172.255.255.255 11211     multicast Other 172.*       &lt;NA&gt;
+21       172.0.0.1  4857 gatewayRouter Other 172.*       &lt;NA&gt;
+</code></pre>
+
+<p>The only new one is <code>172.255.255.255</code>.  This is a multicast IP to all machines in the inside network.</p>
+
+<p>Now let&#39;s compute the first seen destination IP distribution by type and join it with the source distribution data and plot the quantiles together:</p>
+
+<pre><code class="r">destIpFreqQuant &lt;- groupQuantile(destIpFreq, &quot;type&quot;)
+
+srcDestIpFreqQuant &lt;- make.groups(source = srcIpFreqQuant, destination = destIpFreqQuant)
+
+xyplot(Freq ~ 100 * p | type, groups = which, 
+   data = srcDestIpFreqQuant, 
+   layout = c(7, 1), type = c(&quot;p&quot;, &quot;g&quot;), 
+   between = list(x = 0.25), 
+   scales = list(y = list(log = 10)),
+   xlab = &quot;Percentile&quot;,
+   ylab = &quot;Number of Connections&quot;,
+   subset = type != &quot;Other&quot;,
+   auto.key = TRUE
+)
+</code></pre>
+
+<p><img src="figures/knitr/unnamed-chunk-20.png" alt="plot of chunk unnamed-chunk-20"> </p>
+
+<p>Some observations:</p>
+
+<ul>
+<li>Workstations show up as first seen source IP more than they do for first seen destination IP.  Trusting that first seen source is most often the originator, this means workstation-type hosts initiate connections less often than receive connections</li>
+<li>Domain controller, HTTP, SMTP show up more frequently as first seen destination</li>
+</ul>
+
+<h4>Source and destination IP frequency scatterplot</h4>
+
+<p>Now let&#39;s merge counts so that we have a count of source and destination for each host:</p>
+
+<pre><code class="r">freqMerge &lt;- merge(srcIpFreq, destIpFreq[,c(&quot;value&quot;, &quot;Freq&quot;, &quot;type&quot;)], by=&quot;value&quot;,
+suffixes = c(&quot;.src&quot;, &quot;.dest&quot;), all = TRUE)
+freqMerge$type &lt;- freqMerge$type.src
+freqMerge$type[is.na(freqMerge$type)] &lt;- freqMerge$type.dest[is.na(freqMerge$type)]
+freqMerge$Freq.src[is.na(freqMerge$Freq.src)] &lt;- 0
+freqMerge$Freq.dest[is.na(freqMerge$Freq.dest)] &lt;- 0
+
+xyplot(log10(Freq.dest + 1) ~ log10(Freq.src + 1) | type, data = freqMerge,
+   # scales = list(relation = &quot;free&quot;),
+   xlab = &quot;log10 number of times host is first seen source&quot;,
+   ylab = &quot;log10 number of times host is first seen dest&quot;,
+   # subset = !type %in% c(&quot;SMTP&quot;, &quot;Administrator&quot;, &quot;Domain controller&quot;),
+   type = c(&quot;p&quot;, &quot;g&quot;),
+   panel = function(x, y, ...) {
+      panel.xyplot(x, y, ...)
+      panel.abline(a = 0, b = 1)
+   },
+   between = list(x = 0.25, y = 0.25),
+   as.table = TRUE,
+   aspect = &quot;iso&quot;
+)
+</code></pre>
+
+<p><img src="figures/knitr/unnamed-chunk-21.png" alt="plot of chunk unnamed-chunk-21"> </p>
+
+<p>We add a <code>y = x</code> line to separate hosts who appear in the data more as source than dest.</p>
+
+<p>Some observations:</p>
+
+<ul>
+<li>HTTP, Admin, DC, and SMTP are more often dest than source</li>
+<li>External is mixed</li>
+<li>There is a small cluster of workstations with more source but same dest</li>
+<li>There is one web server (HTTP) that is never the first seen destination</li>
+<li>...</li>
+</ul>
+
+<p>Now let&#39;s look at the hosts that show up the most as either sourc or dest:</p>
+
+<pre><code class="r">freqMerge$tot &lt;- freqMerge$Freq.src + freqMerge$Freq.dest
+topTot &lt;- head(freqMerge[order(freqMerge$tot, decreasing = TRUE),], 10)
+topTot
+</code></pre>
+
+<pre><code>            value Freq.src           hostName type.src externalIP Freq.dest type.dest
+995    172.30.0.4    93584  web03.bigmkt3.com     HTTP   10.0.4.4   8122427      HTTP
+176    172.10.0.4   151100  web01.bigmkt1.com     HTTP   10.0.2.4   4652570      HTTP
+587    172.20.0.4    47719  web02.bigmkt2.com     HTTP   10.0.3.4   4341038      HTTP
+584   172.20.0.15    38855 web02l.bigmkt2.com     HTTP  10.0.3.15   4029911      HTTP
+39  10.138.214.18  1300759               &lt;NA&gt; External       &lt;NA&gt;      8355  External
+69  10.170.32.181  1259035               &lt;NA&gt; External       &lt;NA&gt;     12453  External
+68  10.170.32.110  1257747               &lt;NA&gt; External       &lt;NA&gt;     11417  External
+28   10.10.11.102  1251990               &lt;NA&gt; External       &lt;NA&gt;     16642  External
+90  10.247.106.27  1233811               &lt;NA&gt; External       &lt;NA&gt;     10659  External
+95  10.247.58.182  1127650               &lt;NA&gt; External       &lt;NA&gt;     37501  External
+        type     tot
+995     HTTP 8216011
+176     HTTP 4803670
+587     HTTP 4388757
+584     HTTP 4068766
+39  External 1309114
+69  External 1271488
+68  External 1269164
+28  External 1268632
+90  External 1244470
+95  External 1165151
+</code></pre>
+
+<p>There are four web servers with extremely high numbers of connections.  The rest are external IPs.</p>
+
+<pre><code class="r">bigIPs &lt;- topTot$value[1:4]
+</code></pre>
+
+<p>We will investigate why these IPs are so large in the following section.</p>
+
+</div>
+
+
+<div class='tab-pane' id='busiest-host-ips'>
+<h3>Busiest Host IPs</h3>
+
+<p>We noticed that there are four web servers with an inordinately large number of connections.  We want to investigate why this is the case.</p>
+
+<h4>Aggregate counts per minute for each &quot;big&quot; HTTP host</h4>
+
+<p>To start to drill down on these machines, we can look at the time series of counts within each minute for each of the four IP addresses:</p>
+
+<pre><code class="r"># aggregate by minute and IP for just &quot;bigIPs&quot;
+bigTimeAgg &lt;- drAggregate(~ timeMinute + firstSeenDestIp, data = nfRaw, transFn = function(x) {
+   x &lt;- subset(x, firstSeenDestIp %in% bigIPs)
+   x$timeMinute &lt;- as.POSIXct(trunc(x$date, 0, units = &quot;mins&quot;))
+   x
+}, control = clc)
+# sort by IP and time
+bigTimeAgg &lt;- bigTimeAgg[order(bigTimeAgg$firstSeenDestIp, bigTimeAgg$timeMinute),]
+# convert time back to POSIXct
+bigTimeAgg$timeMinute &lt;- as.POSIXct(bigTimeAgg$timeMinute, tz = &quot;UTC&quot;)
+save(bigTimeAgg, file = &quot;data/artifacts/bigTimeAgg.Rdata&quot;)
+</code></pre>
+
+<p>Plot time series by host IP:</p>
+
+<pre><code class="r">xyplot(Freq ~ timeMinute | firstSeenDestIp, 
+   data = bigTimeAgg, 
+   layout = c(1, 4), as.table = TRUE, 
+   strip = FALSE, strip.left = TRUE, 
+   between = list(y = 0.25),
+   type = c(&quot;p&quot;, &quot;g&quot;))
+</code></pre>
+
+<p><img src="figures/knitr/plotBigTimeAgg.png" alt="plot of chunk plotBigTimeAgg"> </p>
+
+<p>It is very clear that the majority of this traffic for each host occurs in two bursts, which occur at the same time for each host.  This looks like a denial of service attack.  We can look at things in more detail to confirm this and see what else we can learn.</p>
+
+<h4>Investigating more closely</h4>
+
+<p>Let&#39;s look at the time period when there were the most connections:</p>
+
+<pre><code class="r">bigTimeAgg[which.max(bigTimeAgg$Freq),]
+</code></pre>
+
+<pre><code>               timeMinute firstSeenDestIp   Freq
+19821 2013-04-11 12:55:00      172.30.0.4 200790
+</code></pre>
+
+<p>Now let&#39;s pull data in the corresponds to this IP address and time.  We can do this with the <code>drSubset()</code> command, which operates on &quot;ddf&quot; objects in a way similar to R&#39;s <code>subset()</code> command.</p>
+
+<pre><code class="r"># retrieve rows from netflow data with highest count
+busiest &lt;- drSubset(nfRaw, 
+   (firstSeenDestIp == &quot;172.30.0.4&quot; | firstSeenSrcIp == &quot;172.30.0.4&quot;) &amp;
+   trunc(date, 0, units = &quot;mins&quot;) == as.POSIXct(&quot;2013-04-11 12:55:00&quot;, tz = &quot;UTC&quot;), 
+   control = clc)
+# order by time
+busiest &lt;- busiest[order(busiest$date),]
+save(busiest, file = &quot;data/artifacts/busiest.Rdata&quot;)
+</code></pre>
+
+<p>Let&#39;s see how often each source IP shows up:</p>
+
+<pre><code class="r">table(busiest$firstSeenSrcIp)
+</code></pre>
+
+<pre><code>
+     10.0.0.42    10.13.77.49 10.138.235.111     10.15.7.85 10.156.165.120    10.200.20.2 
+         26349          26049          26031          26433          25432          26152 
+10.250.178.101   10.70.68.127     172.30.0.4 
+         20001          24343            203 
+</code></pre>
+
+<p>There are multiple IPs hitting this web server around 26k a minute, a total of 200K hits, about 3.33 per second.  Let&#39;s look at a plot:</p>
+
+<pre><code class="r">busiest$cumulative &lt;- seq_len(nrow(busiest))
+xyplot(cumulative ~ date | firstSeenSrcIp, data = busiest, pch = &quot;.&quot;,
+   xlab = &quot;Time (seconds)&quot;,
+   ylab = &quot;Cumulatuve Number of Connections&quot;,
+   between = list(x = 0.25, y = 0.25),
+   layout = c(3, 3),
+   type = c(&quot;p&quot;, &quot;g&quot;),
+   strip = FALSE, strip.left = TRUE
+)
+</code></pre>
+
+<p><img src="figures/knitr/busiestPlot.png" alt="plot of chunk busiestPlot"> </p>
+
+<p>This plot shows that the attack is mixed between IPs - it is not each IP individually in bursts, meaning that these hosts are working together to orchestrate this, making this a distributed denial of service (DDoS) attack.</p>
+
+<p>Note that 172.30.0.4 shows up prominently.  This is because <code>firstSeenSrcIp</code> does not necessarily mean source IP.  Let&#39;s look see what the corresponding ports for these records are:</p>
+
+<pre><code class="r">table(subset(busiest, firstSeenSrcIp == &quot;172.30.0.4&quot;)$firstSeenSrcPort)
+</code></pre>
+
+<pre><code>
+ 80 
+203 
+</code></pre>
+
+<p>All are port 80, and it isn&#39;t typical for a connection to originate from port 80, so we conclude that <code>172.30.0.4</code> is really the destination in these cases.</p>
+
+<p>Let&#39;s check what ports the rest of the IPs are operating on:</p>
+
+<pre><code class="r">busiest2 &lt;- busiest[busiest$firstSeenSrcIp != &quot;172.30.0.4&quot;,]
+table(busiest2$firstSeenDestPort)
+</code></pre>
+
+<pre><code>
+    80 
+200790 
+</code></pre>
+
+<p>All are port 80.</p>
+
+<p>We can use this data to train and make some rules for detecting DDoS attacks.  This would require more study, but to start, it appears that rules would be based on how many times a group of IPs starts hitting a server in a small amount of time.  We would need to build and validate such a detection mechanism with the help of a domain expert.  For now, we are satisfied to know what happened and to incorprate this into our future analyses.</p>
+
+<h4>Finding all the IPs involved</h4>
+
+<p>We got some insight from looking at just one subset of data.  Now let&#39;s look at all the cases of extreme activity for these hosts and make sure we can explain it all.</p>
+
+<p>First, we will get the times all one-minute intervals where there were 1000 connections or more (the 1000 number based on our time series plots from above).</p>
+
+<pre><code class="r"># get all times with more than 1000 hits in a minute
+bigTimes &lt;- sort(unique(bigTimeAgg$timeMinute[bigTimeAgg$Freq &gt; 1000]))
+</code></pre>
+
+<p>We can ensure that we got the right times by plotting them:</p>
+
+<pre><code class="r">xyplot(Freq ~ timeMinute | firstSeenDestIp, data = bigTimeAgg, 
+   layout = c(1, 4), 
+   strip = FALSE, strip.left = TRUE, 
+   as.table = TRUE, 
+   between = list(y = 0.25), 
+   groups = timeMinute %in% bigTimes)
+</code></pre>
+
+<p><img src="figures/knitr/bigTimesPlot.png" alt="plot of chunk bigTimesPlot"> </p>
+
+<p>Now, let&#39;s tabulate the <code>firstSeenSrcIp</code> addresses that show up during these time periods individually for each of our host IPs:</p>
+
+<pre><code class="r">bigTimesHostAgg &lt;- drAggregate(~ firstSeenSrcIp, by = &quot;firstSeenDestIp&quot;, 
+   data = nfRaw, 
+   transFn = function(x) {
+      x$timeMinute &lt;- as.POSIXct(trunc(x$date, 0, units = &quot;mins&quot;))
+      x &lt;- subset(x, firstSeenDestIp %in% bigIPs &amp; timeMinute %in% bigTimes)
+      x
+   }, 
+   control = clc)
+save(bigTimesHostAgg, file = &quot;data/artifacts/bigTimesHostAgg.Rdata&quot;)
+</code></pre>
+
+<p><code>bigTimesHostAgg</code> is now a list of tabulations by inside host.  Let&#39;s look at each of these tables where there were at least 100K records:</p>
+
+<pre><code class="r">lapply(bigTimesHostAgg, function(x) x[x$Freq &gt; 100000,])
+</code></pre>
+
+<pre><code>$`172.20.0.15`
+   firstSeenSrcIp firstSeenDestIp    Freq
+13  10.138.214.18     172.20.0.15 1300111
+20    10.17.15.10     172.20.0.15 1064023
+9    10.12.15.152     172.20.0.15  954487
+23  10.170.32.110     172.20.0.15  679974
+
+$`172.20.0.4`
+   firstSeenSrcIp firstSeenDestIp    Freq
+24  10.170.32.181      172.20.0.4 1258413
+7    10.10.11.102      172.20.0.4 1251990
+28  10.247.106.27      172.20.0.4 1233266
+23  10.170.32.110      172.20.0.4  577166
+
+$`172.10.0.4`
+   firstSeenSrcIp firstSeenDestIp    Freq
+29  10.247.58.182      172.10.0.4 1127252
+47  10.78.100.150      172.10.0.4 1075194
+32   10.38.217.48      172.10.0.4 1066409
+40       10.6.6.7      172.10.0.4  817469
+8     10.12.14.15      172.10.0.4  507763
+
+$`172.30.0.4`
+   firstSeenSrcIp firstSeenDestIp    Freq
+16     10.15.7.85      172.30.0.4 1098550
+18 10.156.165.120      172.30.0.4 1083736
+1       10.0.0.42      172.30.0.4 1057387
+27    10.200.20.2      172.30.0.4 1044598
+42   10.70.68.127      172.30.0.4 1006611
+15 10.138.235.111      172.30.0.4  957277
+11    10.13.77.49      172.30.0.4  939969
+30 10.250.178.101      172.30.0.4  903015
+</code></pre>
+
+<p>What is interesting here is that for each of our four web servers, the list of IPs attacking any one of them is pretty much independent from the others, except for the case of <code>10.170.32.110</code>, which shows up in the first two.</p>
+
+<p>Let&#39;s see where these external IP addresses show up in our source IP frequency tabulation:</p>
+
+<pre><code class="r"># get all IPs involved in the DDoS
+badIPs &lt;- unique(do.call(c, lapply(bigTimesHostAgg, 
+   function(x) x$firstSeenSrcIp[x$Freq &gt; 100000])))
+# do these match with the large values in srcIpFreq for &quot;External&quot;?
+head(subset(srcIpFreq, type == &quot;External&quot;), 20)
+</code></pre>
+
+<pre><code>              value    Freq hostName     type externalIP
+1227  10.138.214.18 1300759     &lt;NA&gt; External       &lt;NA&gt;
+1228  10.170.32.181 1259035     &lt;NA&gt; External       &lt;NA&gt;
+1229  10.170.32.110 1257747     &lt;NA&gt; External       &lt;NA&gt;
+1230   10.10.11.102 1251990     &lt;NA&gt; External       &lt;NA&gt;
+1231  10.247.106.27 1233811     &lt;NA&gt; External       &lt;NA&gt;
+1232   10.12.15.152 1148983     &lt;NA&gt; External       &lt;NA&gt;
+1233  10.247.58.182 1127650     &lt;NA&gt; External       &lt;NA&gt;
+1234     10.15.7.85 1098550     &lt;NA&gt; External       &lt;NA&gt;
+1235 10.156.165.120 1084382     &lt;NA&gt; External       &lt;NA&gt;
+1236    10.17.15.10 1083755     &lt;NA&gt; External       &lt;NA&gt;
+1237  10.78.100.150 1075846     &lt;NA&gt; External       &lt;NA&gt;
+1238   10.38.217.48 1067269     &lt;NA&gt; External       &lt;NA&gt;
+1239      10.0.0.42 1057387     &lt;NA&gt; External       &lt;NA&gt;
+1240    10.200.20.2 1044598     &lt;NA&gt; External       &lt;NA&gt;
+1241 10.138.235.111 1037130     &lt;NA&gt; External       &lt;NA&gt;
+1242    10.13.77.49 1008438     &lt;NA&gt; External       &lt;NA&gt;
+1243   10.70.68.127 1006611     &lt;NA&gt; External       &lt;NA&gt;
+1244 10.250.178.101  903015     &lt;NA&gt; External       &lt;NA&gt;
+1245       10.6.6.7  892922     &lt;NA&gt; External       &lt;NA&gt;
+1246    10.12.14.15  521449     &lt;NA&gt; External       &lt;NA&gt;
+</code></pre>
+
+<p>It turns out that all of the 20 most frequent external hosts are these DDoS attackers.  After accounting for them, the remaining external hosts have orders of magnitude smaller activity.</p>
+
+<p>We will want to ignore these records in the future as they bloat the data set and we now understand them.  Let&#39;s make sure that removing them takes care of the problem by redoing the time aggregation:</p>
+
+<pre><code class="r">timeAgg &lt;- drAggregate(~ timeMinute + firstSeenDestIp, data = nfRaw, 
+   transFn = function(x) {
+      x$timeMinute &lt;- as.POSIXct(trunc(x$date, 0, units = &quot;mins&quot;))
+      subset(x, firstSeenDestIp %in% bigIPs &amp;
+         !(timeMinute %in% bigTimes &amp; 
+         firstSeenSrcIp %in% c(bigIPs, badIPs) &amp; 
+         firstSeenDestIp %in% c(bigIPs, badIPs)))
+   }, control = clc)
+timeAgg &lt;- timeAgg[order(timeAgg$timeMinute),]
+timeAgg$timeMinute &lt;- as.POSIXct(timeAgg$timeMinute, tz = &quot;UTC&quot;)
+save(timeAgg, file = &quot;data/artifacts/timeAgg.Rdata&quot;)
+</code></pre>
+
+<p>Similar plot as before:</p>
+
+<pre><code class="r">xyplot(log10(Freq + 1) ~ timeMinute | firstSeenDestIp, 
+   data = timeAgg, 
+   layout = c(1, 4), as.table = TRUE, 
+   strip = FALSE, strip.left = TRUE, 
+   between = list(y = 0.25),
+   type = c(&quot;p&quot;, &quot;g&quot;))
+</code></pre>
+
+<p><img src="figures/knitr/timeAggPlot.png" alt="plot of chunk timeAggPlot"> </p>
+
+<p>This looks good.  When we do our host divisions, we will take this into account.</p>
+
+</div>
+
+
+<div class='tab-pane' id='sourcedest-ip-payload'>
+<h3>Source/Dest IP Payload</h3>
+
+<p>So far, we have used the precomputed frequency tables for simple summary analyses.  Often there are other properties of the data that we would like to compute frequency tables for.  Such tabulation is an example of a &quot;division-agnostic&quot; method - a method we would like to run over the entire data set regardless of how it is divided.</p>
+
+<p>In datadr, there is a function <code>drAggregate()</code> that does this.  It&#39;s interface is very similar to the familiar <code>xtabs()</code>:</p>
+
+<pre><code class="r">data.frame(xtabs(~ Species, data = iris))
+</code></pre>
+
+<pre><code>     Species Freq
+1     setosa   50
+2 versicolor   50
+3  virginica   50
+</code></pre>
+
+<p>At a minimum, we give it a formula and the input data (must be a ddf or coercible to one):</p>
+
+<pre><code class="r">srcIpByte &lt;- drAggregate(firstSeenSrcPayloadBytes ~ firstSeenSrcIp, 
+   data = nfRaw, control = clc)
+# merge in hostList
+srcIpByte &lt;- mergeHostList(srcIpByte, &quot;firstSeenSrcIp&quot;)
+save(srcIpByte, file = &quot;data/artifacts/srcIpByte.Rdata&quot;)
+</code></pre>
+
+<div class="callout callout-danger"><strong>Note: </strong>Here, we saved the output of the tabulation to `"data/artifacts"`.  It is a good practice to save objects that required some amount of computation to obtain so they are easier to use in the future.</div>
+
+<p>Let&#39;s see what this looks like:</p>
+
+<pre><code class="r">head(srcIpByte)
+</code></pre>
+
+<pre><code>  firstSeenSrcIp     Freq             hostName        type externalIP
+1     172.20.0.3 89352460   mail02.bigmkt2.com        SMTP   10.0.3.3
+2     172.10.0.3 65634909   mail01.bigmkt1.com        SMTP   10.0.2.3
+3     172.30.0.3 56683841   mail03.bigmkt3.com        SMTP   10.0.4.3
+4     172.10.0.4 18574101    web01.bigmkt1.com        HTTP   10.0.2.4
+5     172.30.0.4  9740528    web03.bigmkt3.com        HTTP   10.0.4.4
+6    172.10.2.66  5280763 wss1-319.bigmkt1.com Workstation       &lt;NA&gt;
+</code></pre>
+
+<p>The top 5 are sending nearly 2 orders of magnitude higher bytes than the 6th.</p>
+
+<p>We can make quantile plots of bytes per type as before:</p>
+
+<pre><code class="r">srcIpByteQuant &lt;- groupQuantile(srcIpByte, &quot;type&quot;)
+# quantile plot by host type
+xyplot(log10(Freq) ~ p | type, data = srcIpByteQuant, layout = c(7, 1))
+</code></pre>
+
+<p><img src="figures/knitr/unnamed-chunk-27.png" alt="plot of chunk unnamed-chunk-27"> </p>
+
+<p>This looks similar to the ones we saw for counts.  Not extremely exciting.</p>
+
+<p>But now let&#39;s focus a bit more on the distribution for workstations.</p>
+
+<pre><code class="r"># look at distribution for workstations only
+wFreq &lt;- log2(subset(srcIpByteQuant, type == &quot;Workstation&quot;)$Freq)
+histogram(~ wFreq, breaks = 100, col = &quot;darkgray&quot;, border = &quot;white&quot;)
+</code></pre>
+
+<p><img src="figures/knitr/unnamed-chunk-28.png" alt="plot of chunk unnamed-chunk-28"> </p>
+
+<p>It appears that there is a &quot;point mass&quot; at the tail</p>
+
+<pre><code class="r">subset(srcIpByteQuant, Freq &gt; 2^20 &amp; type == &quot;Workstation&quot;)
+</code></pre>
+
+<pre><code>     firstSeenSrcIp    Freq             hostName        type externalIP      p
+1383   172.10.2.106 5261417 wss1-359.bigmkt1.com Workstation       &lt;NA&gt; 0.9938
+1384   172.30.1.218 5264215 wss3-218.bigmkt3.com Workstation       &lt;NA&gt; 0.9946
+1385    172.20.1.81 5268424  wss2-81.bigmkt2.com Workstation       &lt;NA&gt; 0.9954
+1386    172.20.1.23 5274104  wss2-23.bigmkt2.com Workstation       &lt;NA&gt; 0.9962
+1387   172.10.2.135 5275139 wss1-388.bigmkt1.com Workstation       &lt;NA&gt; 0.9971
+1388    172.20.1.47 5275493  wss2-47.bigmkt2.com Workstation       &lt;NA&gt; 0.9979
+1389   172.30.1.223 5276295 wss3-223.bigmkt3.com Workstation       &lt;NA&gt; 0.9988
+1390    172.10.2.66 5280763 wss1-319.bigmkt1.com Workstation       &lt;NA&gt; 0.9996
+</code></pre>
+
+<p>We should keep these IPs in mind in our later analyses.  For now, let&#39;s remove the point mass and look at the histogram again:</p>
+
+<pre><code class="r">histogram(~ wFreq[wFreq &lt; 20], breaks = 30, col = &quot;darkgray&quot;, border = &quot;white&quot;)
+</code></pre>
+
+<p><img src="figures/knitr/unnamed-chunk-30.png" alt="plot of chunk unnamed-chunk-30"> </p>
+
+<p>This data looks like a mixture of normals.  We will try to fit them with the <code>mixtools</code> library:</p>
+
+<pre><code class="r">library(mixtools)
+mixmdl &lt;- normalmixEM(wFreq[wFreq &lt; 20], mu = c(16.78, 17.54, 18.2))
+</code></pre>
+
+<pre><code>number of iterations= 183 
+</code></pre>
+
+<pre><code class="r">plot(mixmdl, which = 2, main2 = &quot;&quot;, breaks = 50)
+breakPoints &lt;- c(17.2, 17.87)
+abline(v = breakPoints)
+</code></pre>
+
+<p><img src="figures/knitr/unnamed-chunk-32.png" alt="plot of chunk unnamed-chunk-32"> </p>
+
+<p>The <code>breakPoints</code> do a pretty good job of separating the distributions.  Let&#39;s use those breakpoints to categorize Workstations and look at how these categories behave within IP subnets.</p>
+
+<pre><code class="r"># categorize IPs
+srcIpByte$byteCat &lt;- cut(log2(srcIpByte$Freq), 
+   breaks = c(0, breakPoints, 100), labels = c(&quot;low&quot;, &quot;mid&quot;, &quot;high&quot;))
+
+# create CIDR for subnets
+srcIpByte$cidr24 &lt;- ip2cidr(srcIpByte$firstSeenSrcIp, 24)
+
+# tabulate by CIDR and category
+cidrCatTab &lt;- xtabs(~ cidr24 + byteCat, data = subset(srcIpByte, type == &quot;Workstation&quot;))
+cidrCatTab
+</code></pre>
+
+<pre><code>               byteCat
+cidr24          low mid high
+  172.10.1.0/24 109 145    0
+  172.10.2.0/24 143   0    3
+  172.20.1.0/24 197  52    5
+  172.20.2.0/24 107  39    0
+  172.30.1.0/24 200   1   53
+  172.30.2.0/24 100  45    1
+</code></pre>
+
+<p>We can look at this table with a mosaic plot:</p>
+
+<pre><code class="r"># mosaic plot
+plot(cidrCatTab, color = tableau10[1:3], border = FALSE, main = NA)
+</code></pre>
+
+<p><img src="figures/knitr/unnamed-chunk-35.png" alt="plot of chunk unnamed-chunk-35"> </p>
+
+<p>The categorization is clearly different within each subnet.  <code>170.30.1.0/24</code> has the highest &quot;high&quot; category.</p>
+
+<p>Here&#39;s another way to look at it:</p>
+
+<pre><code class="r">srcByteQuant &lt;- groupQuantile(
+   subset(srcIpByte, type == &quot;Workstation&quot; &amp; Freq &lt; 2^20), &quot;cidr24&quot;)
+
+xyplot(log2(Freq) ~ p | cidr24, data = srcByteQuant,
+   panel = function(x, y, ...) {
+      panel.xyplot(x, y, ...)
+      panel.abline(h = breakPoints, lty = 2, col = &quot;darkgray&quot;)
+   },
+   between = list(x = 0.25),
+   layout = c(6, 1)
+)
+</code></pre>
+
+<p><img src="figures/knitr/unnamed-chunk-36.png" alt="plot of chunk unnamed-chunk-36"> </p>
+
+<p><code>170.30.1.0/24</code> is essentially the only category with the upper group.</p>
+
+<p>We can use these categorizations as an additional characteristic of our workstation hosts...</p>
+
+</div>
+
+
+<div class='tab-pane' id='inside-to-inside'>
+<h3>Inside to Inside</h3>
+
+<p>It will be useful to understand if there any connections where an inside host is talking to an inside host.  Based on what we think we know about the collection procedure, this should not be possible.  But it&#39;s always good to check with the data.</p>
+
+<p>We can do this with <code>drAggregate()</code>, but we want to tabulate by <code>&quot;inside&quot;-&gt;&quot;outside&quot;</code>, <code>&quot;outside&quot;-&gt;&quot;inside&quot;</code>, etc.  These variables do not exist in the data, but we can create them using the <code>transFn</code> argument.  We will create new variables <code>srcCat</code> and <code>destCat</code> that are set to <code>&quot;inside&quot;</code> if the IP begins with 172, and outside otherwise.</p>
+
+<pre><code class="r"># see if there are any inside-inside connections
+srcDestInsideTab &lt;- drAggregate(~ srcCat + destCat, data = nfRaw, 
+   transFn = function(x) {
+      x$srcCat &lt;- &quot;outside&quot;
+      x$srcCat[grepl(&quot;^172&quot;, x$firstSeenSrcIp)] &lt;- &quot;inside&quot;
+      x$destCat &lt;- &quot;outside&quot;
+      x$destCat[grepl(&quot;^172&quot;, x$firstSeenDestIp)] &lt;- &quot;inside&quot;
+      x
+   }, control = clc)
+save(srcDestInsideTab, file = &quot;data/artifacts/srcDestInsideTab.Rdata&quot;)
+</code></pre>
+
+<pre><code class="r">srcDestInsideTab
+</code></pre>
+
+<pre><code>   srcCat destCat     Freq
+2 outside  inside 21646621
+3  inside outside  1591785
+1  inside  inside    20279
+4 outside outside        0
+</code></pre>
+
+<p>There are 20279 <code>&quot;inside&quot;-&gt;&quot;inside&quot;</code> connections.  This should not be.  Let&#39;s take a closer look.</p>
+
+<p>20K records is not a large amount, so we can pull all the data that contain <code>&quot;inside&quot;-&gt;&quot;inside&quot;</code> connections.  This can be done with a simple <code>recombine()</code> operation.  Recombination is simply the specification of a function to <code>apply</code> to each subset, followed by a <code>combine</code> strategy.  Here, we want to apply a function to each subset that only returns <code>&quot;inside&quot;-&gt;&quot;inside&quot;</code> connections.  Then we want to rbind the results using <code>combRbind()</code>, which takes the results from each computation and binds them into a single data frame for analysis in our local session.</p>
+
+<pre><code class="r"># get a data frame of all inside to inside connections
+in2in &lt;- recombine(nfRaw, 
+   apply = function(x) {
+      srcIn &lt;- grepl(&quot;^172&quot;, x$firstSeenSrcIp)
+      destIn &lt;- grepl(&quot;^172&quot;, x$firstSeenDestIp)
+      x[srcIn &amp; destIn,]
+   }, 
+   combine = combRbind(), control = clc)
+save(in2in, file = &quot;data/artifacts/in2in.Rdata&quot;)
+</code></pre>
+
+<div class="callout callout-danger"><strong>Note: </strong>Here our recombintion resulted in a data set small enough to handle easily in our local environment.  This is a common paradigm for Divide and Recombine -- we strive to be handling smaller data sets in our local R environment as often as possible that are artifacts of the analysis of the big data.</div>
+
+<p>Let&#39;s look at a few of these:</p>
+
+<pre><code class="r">in2in[1:10, 1:5]
+</code></pre>
+
+<pre><code>      dateTimeStr ipLayerProtocol ipLayerProtocolCode firstSeenSrcIp firstSeenDestIp
+11688   2.013e+13              17                 UDP     172.10.0.6 172.255.255.255
+10181   2.013e+13              17                 UDP     172.10.0.6 172.255.255.255
+17678   2.013e+13              17                 UDP    172.10.0.50 172.255.255.255
+38810   2.013e+13               1               OTHER     172.10.0.6    172.30.1.104
+38811   2.013e+13               1               OTHER     172.10.0.6    172.30.1.107
+38812   2.013e+13               1               OTHER     172.10.0.6    172.30.1.109
+38813   2.013e+13               1               OTHER     172.10.0.6    172.30.1.106
+38814   2.013e+13               1               OTHER     172.10.0.6    172.30.1.108
+38815   2.013e+13               1               OTHER     172.10.0.6    172.30.1.102
+38816   2.013e+13               1               OTHER     172.10.0.6    172.30.1.101
+</code></pre>
+
+<p>We notice that each of the first 10 records contain at least one of the special IP addresses we saw before.  Do all records contain one of these addresses?</p>
+
+<pre><code class="r">otherIPs &lt;- subset(hostList, type == &quot;Other 172.*&quot;)$IP
+ind &lt;- which(!(
+   in2in$firstSeenSrcIp %in% otherIPs | 
+   in2in$firstSeenDestIp %in% otherIPs))
+ind
+</code></pre>
+
+<pre><code>[1] 6616
+</code></pre>
+
+<p>There is one that does not:</p>
+
+<pre><code class="r">in2in[ind,1:5]
+</code></pre>
+
+<pre><code>      dateTimeStr ipLayerProtocol ipLayerProtocolCode firstSeenSrcIp firstSeenDestIp
+48013   2.013e+13               6                 TCP     172.30.0.3     172.30.1.94
+</code></pre>
+
+<p>It contains 2 real inside hosts...  What are these?</p>
+
+<pre><code class="r">subset(hostList, IP %in% c(&quot;172.30.0.3&quot;, &quot;172.30.1.94&quot;))
+</code></pre>
+
+<pre><code>             IP            hostName        type externalIP
+718  172.30.0.3  mail03.bigmkt3.com        SMTP   10.0.4.3
+972 172.30.1.94 wss3-94.bigmkt3.com Workstation       &lt;NA&gt;
+</code></pre>
+
+<p>Mail and workstation - how did this record get in there?</p>
+
+</div>
+
+
+<div class='tab-pane' id='connection-duration'>
+<h3>Connection Duration</h3>
+
+<p>Another very useful division-agnostic method we can apply to our data is <code>drQuantile()</code>.  Here we are interested in the overall distribution of connection duration, and we can get approximate quantiles with the following:</p>
+
+<pre><code class="r">dsq &lt;- drQuantile(nfRaw, var = &quot;durationSeconds&quot;, control = clc)
+save(dsq, file = &quot;data/artifacts/dsq.Rdata&quot;)
+</code></pre>
+
+<p>Plot it...</p>
+
+<pre><code class="r">xyplot(log2(q + 1) ~ fval * 100, data = dsq, type = &quot;p&quot;,
+   xlab = &quot;Percentile&quot;,
+   ylab = &quot;log2(duration + 1) (seconds)&quot;,
+   panel = function(x, y, ...) {
+      panel.grid(h=-1, v = FALSE)
+      panel.abline(v = seq(0, 100, by = 10), col = &quot;#e6e6e6&quot;)
+      panel.xyplot(x, y, ...)
+      panel.abline(h = log2(1801), lty = 2)
+   }
+)
+</code></pre>
+
+<p><img src="figures/knitr/unnamed-chunk-40.png" alt="plot of chunk unnamed-chunk-40"> </p>
+
+<ul>
+<li>Seconds is &quot;discrete&quot;</li>
+<li>20% of connections have zero duration (but zero may be rounded down)</li>
+<li>Max duration is 1800 seconds.</li>
+</ul>
+
+<p>TODO: duration (0, &gt;0) vs. packet count</p>
+
+<p>TODO: hexbin of duration vs. packet count</p>
+
+<p>TODO: duration distribution by TCP/UDP</p>
+
+<p>Now let&#39;s look at duration by source type and destination type.  </p>
+
+<h4>Duration disbribution by source type</h4>
+
+<pre><code class="r">dsqSrcType &lt;- drQuantile(nfRaw, var = &quot;durationSeconds&quot;, by = &quot;type&quot;, control = clc,
+   preTransFn = function(x) {
+      mergeHostList(x[,c(&quot;firstSeenSrcIp&quot;, &quot;durationSeconds&quot;)], &quot;firstSeenSrcIp&quot;)
+   },
+   params = list(mergeHostList = mergeHostList, hostList = hostList)
+)
+save(dsqSrcType, file = &quot;data/artifacts/dsqSrcType.Rdata&quot;)
+</code></pre>
+
+<p>Plot the quantiles...</p>
+
+<pre><code class="r">xyplot(log2(q + 1) ~ fval * 100 | group, data = dsqSrcType, type = &quot;p&quot;,
+   xlab = &quot;Percentile&quot;,
+   ylab = &quot;log2(duration + 1)&quot;,
+   panel = function(x, y, ...) {
+      panel.abline(v = seq(0, 100, by = 10), col = &quot;#e6e6e6&quot;)
+      panel.xyplot(x, y, ...)
+      panel.abline(h = log2(1801), lty = 2)
+   },
+   layout = c(7, 1)
+)
+</code></pre>
+
+<p><img src="figures/knitr/unnamed-chunk-41.png" alt="plot of chunk unnamed-chunk-41"> </p>
+
+<h4>Duration disbribution by destination type</h4>
+
+<p>Same as before...</p>
+
+<pre><code class="r">dsqDestType &lt;- drQuantile(nfRaw, var = &quot;durationSeconds&quot;, by = &quot;type&quot;, control = clc,
+   preTransFn = function(x) {
+      mergeHostList(x[,c(&quot;firstSeenDestIp&quot;, &quot;durationSeconds&quot;)], &quot;firstSeenDestIp&quot;)
+   },
+   params = list(mergeHostList = mergeHostList, hostList = hostList)
+)
+save(dsqDestType, file = &quot;data/artifacts/dsqDestType.Rdata&quot;)
+</code></pre>
+
+<p>Plot quantiles overlaid with source quantiles</p>
+
+<pre><code class="r">dsqType &lt;- make.groups(source = dsqSrcType, dest = dsqDestType)
+xyplot(log2(q + 1) ~ fval * 100 | group, groups = which, data = dsqType, type = &quot;p&quot;,
+   xlab = &quot;Percentile&quot;,
+   ylab = &quot;log2(duration + 1)&quot;,
+   panel = function(x, y, ...) {
+      panel.abline(v = seq(0, 100, by = 10), col = &quot;#e6e6e6&quot;)
+      panel.xyplot(x, y, ...)
+      panel.abline(h = log2(1801), lty = 2)
+   },
+   layout = c(8, 1),
+   auto.key = TRUE
+)
+</code></pre>
+
+<p><img src="figures/knitr/unnamed-chunk-42.png" alt="plot of chunk unnamed-chunk-42"> </p>
+
+<p>Observations...</p>
+
+</div>
+
+
+<div class='tab-pane' id='top-ports'>
+<h3>Top Ports</h3>
+
+<p>How does duration behavior vary by port?</p>
+
+<p>Get top 10 ports...</p>
+
+<pre><code class="r">topPorts &lt;- as.integer(names(commonPortList))
+</code></pre>
+
+<h4>Quantiles of duration by port</h4>
+
+<p>Provide <code>preTransFn</code> to subset to only the ports of interest</p>
+
+<pre><code class="r">dsqPort &lt;- drQuantile(nfRaw, var = &quot;durationSeconds&quot;, by = &quot;port&quot;, control = clc,
+   preTransFn = function(x) {
+      srcInd &lt;- which(x$firstSeenSrcPort %in% topPorts)
+      destInd &lt;- which(x$firstSeenDestPort %in% topPorts)
+      data.frame(
+         durationSeconds = c(x$durationSeconds[srcInd], x$durationSeconds[destInd]),
+         port = c(x$firstSeenSrcPort[srcInd], x$firstSeenDestPort[destInd])
+      )
+   }
+)
+save(dsqPort, file = &quot;data/artifacts/dsqPort.Rdata&quot;)
+</code></pre>
+
+<p>Plot of duration distribution by top 10 ports...</p>
+
+<pre><code class="r">dsqPort$group &lt;- factor(dsqPort$group)
+nms &lt;- sapply(commonPortList[levels(dsqPort$group)], function(x) x$name)
+levels(dsqPort$group) &lt;- paste(levels(dsqPort$group), nms)
+xyplot(log2(q + 1) ~ fval * 100 | group, data = dsqPort,
+   xlab = &quot;Percentile&quot;,
+   ylab = &quot;log2(duration + 1)&quot;,
+   panel = function(x, y, ...) {
+      panel.xyplot(x, y, ...)
+      panel.abline(h = log2(1801), lty = 2)
+   },
+   type = c(&quot;p&quot;, &quot;g&quot;),
+   between = list(x = 0.25, y = 0.25),
+   layout = c(5, 2)
+)
+</code></pre>
+
+<p><img src="figures/knitr/unnamed-chunk-46.png" alt="plot of chunk unnamed-chunk-46"> </p>
+
+<p>Observations...</p>
+
+</div>
+
+
+<div class='tab-pane' id='division-by-inside-host'>
+<h3>Division by Inside Host</h3>
+
+<p>We have looked at many summaries and are now ready to look at some of the data in more detail.  </p>
+
+<p>For many of our analyses, it makes sense to be investigating the behaviors of individual hosts inside the network.  The data we read in was arbitrarily split into 50K rows per subset, but for doing per-inside-host analyses, it makes sense to divide the data by inside host.  Another division that is worth looking into is looking at all hosts for small slices of time, which we will do later.</p>
+
+<p>In the <code>preTransFn</code>, we filter out the DDoS attacks, we will get rid of the 4 big HTTP hosts cooresponding to our previous analysis.  We want to filter out records with destination in <code>bigIPs</code> and source in <code>badIPs</code> during <code>bigTimes</code>:</p>
+
+<pre><code class="r">load(&quot;data/artifacts/bigTimeAgg.Rdata&quot;)
+bigTimes &lt;- sort(unique(bigTimeAgg$timeMinute[bigTimeAgg$Freq &gt; 1000]))
+
+bigIPs &lt;- c(&quot;172.20.0.15&quot;, &quot;172.20.0.4&quot;, &quot;172.10.0.4&quot;, &quot;172.30.0.4&quot;)
+badIPs &lt;- c(&quot;10.138.214.18&quot;, &quot;10.17.15.10&quot;, &quot;10.12.15.152&quot;, &quot;10.170.32.110&quot;, &quot;10.170.32.181&quot;, &quot;10.10.11.102&quot;, &quot;10.247.106.27&quot;, &quot;10.247.58.182&quot;, &quot;10.78.100.150&quot;, &quot;10.38.217.48&quot;, &quot;10.6.6.7&quot;, &quot;10.12.14.15&quot;, &quot;10.15.7.85&quot;, &quot;10.156.165.120&quot;, &quot;10.0.0.42&quot;, &quot;10.200.20.2&quot;, &quot;10.70.68.127&quot;, &quot;10.138.235.111&quot;, &quot;10.13.77.49&quot;, &quot;10.250.178.101&quot;)
+</code></pre>
+
+<p>To create the <code>nfByHost</code> division, we define a new variable <code>hostIP</code> and split on that, knowing that we have taken care of inside-&gt;inside connections... <code>getHost()</code> takes the chunk of data being processed and adds a new column <code>hostIP</code> and <code>srcIsHost</code>...</p>
+
+<pre><code class="r">nfByHost &lt;- divide(nfRaw, by = &quot;hostIP&quot;,
+   preTransFn = function(x) {
+      library(cyberTools)
+      x$timeMinute &lt;- as.POSIXct(trunc(x$date, 0, units = &quot;mins&quot;))
+      x &lt;- subset(x, !(timeMinute %in% bigTimes &amp; 
+         firstSeenSrcIp %in% c(bigIPs, badIPs) &amp; 
+         firstSeenDestIp %in% c(bigIPs, badIPs)))
+      getHost(x)
+   },
+   output = localDiskConn(&quot;data/nfByHost&quot;),
+   control = clc
+)
+nfByHost &lt;- updateAttributes(nfByHost, control = clc)
+</code></pre>
+
+<!-- 180 with 8 cores -->
+
+<p>Look at the object...</p>
+
+<pre><code class="r">nfByHost
+</code></pre>
+
+<pre><code>
+Distributed data object of class &#39;kvLocalDisk&#39; with attributes: 
+
+&#39;ddo&#39; attribute | value
+----------------+--------------------------------------------------------------------------
+ keys           | keys are available through getKeys(dat)
+ totStorageSize | 32.28 MB
+ totObjectSize  | 197 MB
+ nDiv           | 1223
+ splitSizeDistn | use splitSizeDistn(dat) to get distribution
+ example        | use kvExample(dat) to get an example subset
+ bsvInfo        | [empty] no BSVs have been specified
+
+&#39;ddf&#39; attribute | value
+----------------+--------------------------------------------------------------------------
+ vars           | dateTimeStr(num), ipLayerProtocol(int), and 18 more
+ transFn        | identity (original data is a data frame)
+ nRow           | 1913593
+ splitRowDistn  | use splitRowDistn(dat) to get distribution
+ summary        | use summary(dat) to see summaries
+
+Division:
+  Type: Conditioning variable division
+    Conditioning variables: hostIP
+
+localDiskConn connection
+  loc=/Users/hafe647/Documents/Code/vastChallenge/data/nfByHost; nBins=0
+</code></pre>
+
+<p>Much smaller - plenty small to handle in memory actually...</p>
+
+<p>The subset sizes in this partitioning of the data are lopsided...</p>
+
+<pre><code class="r">plot(log10(splitRowDistn(nfByHost)))
+</code></pre>
+
+<p><img src="figures/knitr/plotByHostRows.png" alt="plot of chunk plotByHostRows"> </p>
+
+</div>
+
+
+<div class='tab-pane' id='time-aggregated-recombination'>
+<h3>Time-Aggregated Recombination</h3>
+
+<p>Let&#39;s tabulate number of connections by hour:</p>
+
+<pre><code class="r">hostTimeAgg &lt;- recombine(nfByHost, 
+   apply = function(x) {
+      timeHour &lt;- as.POSIXct(trunc(x$date, 0, units = &quot;hours&quot;))
+      res &lt;- data.frame(xtabs(~ timeHour))
+      res$timeHour &lt;- as.POSIXct(res$timeHour)
+      res
+   }, 
+   combine = combDdo(), control = clc)
+save(hostTimeAgg, file = &quot;data/artifacts/hostTimeAgg.Rdata&quot;)
+</code></pre>
+
+<p>This results in a distributed data object.  We can further apply a recombination to see if there are any big spikes from the aggregated time plot present:</p>
+
+<pre><code class="r">hostTimeAggDF &lt;- recombine(hostTimeAgg, 
+   apply = identity, 
+   combine = combRbind())
+save(hostTimeAggDF, file = &quot;data/artifacts/hostTimeAggDF.Rdata&quot;)
+</code></pre>
+
+<p>Plot...</p>
+
+<pre><code class="r">xyplot(sqrt(Freq) ~ timeHour, data = hostTimeAggDF, alpha = 0.5)
+</code></pre>
+
+<p><img src="figures/knitr/plotHostTimeAggDF.png" alt="plot of chunk plotHostTimeAggDF"> </p>
+
+<p>Massive spikes are not present.  But some other interesting time behavior...</p>
+
+</div>
+
+
+<div class='tab-pane' id='trelliscope-displays'>
+<h3>Trelliscope Displays</h3>
+
+<p>Visual recombination... See Trelliscope docs for a lot more details...</p>
+
+<pre><code class="r">library(trelliscope)
+vdbConn(&quot;vdb&quot;)
+</code></pre>
+
+<p>Make and test simple panel function...</p>
+
+<pre><code class="r">timePanel &lt;- function(x) {
+   xyplot(sqrt(Freq) ~ timeHour, data = x, type = c(&quot;p&quot;, &quot;g&quot;))
+}
+timePanel(hostTimeAgg[[1]][[2]])
+</code></pre>
+
+<p><img src="figures/knitr/trellPanel.png" alt="plot of chunk trellPanel"> </p>
+
+<p>Make and test simple cognostics function...</p>
+
+<pre><code class="r">timeCog &lt;- function(x) {
+   IP &lt;- attr(x, &quot;split&quot;)$hostIP
+   curHost &lt;- hostList[hostList$IP == IP,]
+
+   list(
+      hostName = cog(curHost$hostName, desc = &quot;host name&quot;),
+      type = cog(curHost$type, desc = &quot;host type&quot;),
+      nobs = cog(sum(x$Freq), &quot;log 10 total number of connections&quot;),
+      timeCover = cog(nrow(x), desc = &quot;number of hours containing connections&quot;),
+      medHourCt = cog(median(sqrt(x$Freq)), 
+         desc = &quot;median square root number of connections&quot;),
+      madHourCt = cog(mad(sqrt(x$Freq)), 
+         desc = &quot;median absolute deviation square root number of connections&quot;),
+      max = cog(max(x$Freq), desc = &quot;maximum number of connections in an hour&quot;)
+   )
+}
+
+timeCog(hostTimeAgg[[1]][[2]])
+</code></pre>
+
+<pre><code>$hostName
+[1] &quot;wss1-288.bigmkt1.com&quot;
+
+$type
+[1] &quot;Workstation&quot;
+
+$nobs
+[1] 804
+
+$timeCover
+[1] 15
+
+$medHourCt
+[1] 5.657
+
+$madHourCt
+[1] 3.47
+
+$max
+[1] 178
+</code></pre>
+
+<p>Make the display...</p>
+
+<pre><code class="r">makeDisplay(hostTimeAgg,
+   name = &quot;hourly_count&quot;,
+   group = &quot;inside_hosts&quot;,
+   desc = &quot;time series plot of hourly counts of connections for each inside host&quot;,
+   panelFn = timePanel,
+   panelDim = list(width = 800, height = 400),
+   cogFn = timeCog,
+   lims = list(x = &quot;same&quot;, y = &quot;same&quot;))
+</code></pre>
+
+<p>A version of this is available to view <a href="http://glimmer.rstudio.com/rhafen/vast/#group=common&amp;name=hourly_count">here</a>.</p>
+
+<p>Observations:</p>
+
+<ul>
+<li>HTTP hosts have wierd plateus on Apr 11 and Apr 13</li>
+<li>Domain Controllers are pretty erratic - dc01.bigmkt1.com has a plateau</li>
+<li>SMTP jumps and then trails down, and the jump is not always on the day
+
+<ul>
+<li>it is usually arount 170 connections / hour</li>
+</ul></li>
+<li>Administrator is pretty boring</li>
+<li>Workstations:
+
+<ul>
+<li>sorted by <code>timeCover</code>, some have nice periodic behavior</li>
+<li>most workstations have activity for just 1-2 hours a day</li>
+<li>sometimes there is activity that spans a full day (e.g. 172.20.1.94)</li>
+<li>This is not at all how I would think workstations behave</li>
+</ul></li>
+</ul>
+
+<h4>Break it up by incoming / outgoing</h4>
+
+<p>If host is first seen source, classify connection as &quot;outgoing&quot; (this will not be 100% correct), otherwise, incoming, then aggregate by hour...</p>
+
+<pre><code class="r">hostTimeDirAgg &lt;- recombine(nfByHost, 
+   apply = function(x) {
+      x$timeHour &lt;- as.POSIXct(trunc(x$date, 0, units = &quot;hours&quot;))
+      res &lt;- data.frame(xtabs(~ timeHour + srcIsHost, data = x))
+      res$timeHour &lt;- as.POSIXct(res$timeHour)
+      res$direction &lt;- &quot;incoming&quot;
+      res$direction[as.logical(as.character(res$srcIsHost))] &lt;- &quot;outgoing&quot;
+      subset(res, Freq &gt; 0)
+   }, 
+   combine = combDdo(), control = clc)
+save(hostTimeDirAgg, file = &quot;data/artifacts/hostTimeDirAgg.Rdata&quot;)
+</code></pre>
+
+<!--
+# TODO: fix getSplitVars for when not of class divValue
+# TODO: find out why it's not divValue
+-->
+
+<p>Now make a similar display:</p>
+
+<pre><code class="r">timePanelDir &lt;- function(x) {
+   xyplot(sqrt(Freq) ~ timeHour, groups = direction, data = x, type = c(&quot;p&quot;, &quot;g&quot;), auto.key = TRUE)
+}
+
+makeDisplay(hostTimeDirAgg,
+   name = &quot;hourly_count_src_dest&quot;,
+   group = &quot;inside_hosts&quot;,
+   desc = &quot;time series plot of hourly counts of connections for each inside host by source / destination&quot;,
+   panelFn = timePanelDir,
+   panelDim = list(width = 800, height = 400),
+   cogFn = timeCog,
+   lims = list(x = &quot;same&quot;, y = &quot;same&quot;))
+</code></pre>
+
+<p>Observations:</p>
+
+<ul>
+<li>SMTP: 172.20.0.3 has a weird plateau thing at the beginning of each day for its outgoing connections</li>
+<li>Domain Controller:
+
+<ul>
+<li>outgoings are steady and low</li>
+<li>incomings are typically very high but only for a contiguous 4-5 hours a day - investigate these</li>
+</ul></li>
+<li>Administrator: 
+
+<ul>
+<li>outgoings are low and steady</li>
+<li>incomings are one or two spikes a day (look into this and see what port)</li>
+</ul></li>
+<li>Workstations:
+
+<ul>
+<li>with cyclical behavior, such as 172.10.2.66</li>
+<li>the cyclical behavior is coming from outgoing connections</li>
+<li>Workstation 172.30.1.215 has 2019 connections</li>
+<li>After that is workstation 172.10.2.106, with 29234</li>
+<li>172.10.2.106, 172.30.1.218, 172.20.1.23, 172.10.2.135, 172.20.1.81, 172.20.1.47, 172.30.1.223, 172.10.2.66 - these guys all have about 29K connections, and look very similar, and are cyclical - why?</li>
+</ul></li>
+<li>HTTP hosts with same plateu behavior:
+
+<ul>
+<li>172.10.0.5, 172.10.0.9, 172.10.0.8, 172.20.0.6, 172.10.0.7</li>
+<li>Also notice that there is a hole at 2013-04-14 17:00</li>
+<li>most everyone has a missing point there</li>
+</ul></li>
+<li>SMTP has outgoing</li>
+</ul>
+
+</div>
+
+
+<div class='tab-pane' id='closer-investigation'>
+<h3>Closer Investigation</h3>
+
+<p>Let&#39;s look at some of these...</p>
+
+<h4>Workstations with the most connections</h4>
+
+<p>From our observations before, we noticed some workstations with ~29K connections each that all have similar-looking behavior.  Let&#39;s pull these into memory:</p>
+
+<pre><code class="r">bigHosts &lt;- nfByHost[paste(&quot;hostIP=&quot;, 
+   c(&quot;172.10.2.106&quot;, &quot;172.30.1.218&quot;, &quot;172.20.1.23&quot;, 
+   &quot;172.10.2.135&quot;, &quot;172.20.1.81&quot;, &quot;172.20.1.47&quot;, 
+   &quot;172.30.1.223&quot;, &quot;172.10.2.66&quot;), sep = &quot;&quot;)]
+</code></pre>
+
+<p>Let&#39;s look at what destination ports the first host is using:</p>
+
+<pre><code class="r">hostOne &lt;- bigHosts[[1]][[2]]
+hostOne &lt;- subset(hostOne, srcIsHost)
+table(hostOne$firstSeenDestPort)
+</code></pre>
+
+<pre><code>
+   22    80  1900 
+  408 28772     8 
+</code></pre>
+
+<p>The majority is web traffic, and a few ssh.  Port 1900 is UDP to IP 239.255.255.250, which are <a href="http://en.wikipedia.org/wiki/Simple_Service_Discovery_Protocol">SSDP</a> connections.</p>
+
+<p>Now let&#39;s tabulate by destination port and plot the results:</p>
+
+<pre><code class="r">hostOne$timeHour &lt;- as.POSIXct(trunc(hostOne$date, 0, units = &quot;hours&quot;), tz = &quot;UTC&quot;)
+hostOneTab &lt;- data.frame(xtabs(~ firstSeenDestPort + timeHour, data = hostOne))
+hostOneTab$timeHour &lt;- as.POSIXct(hostOneTab$timeHour)
+hostOneTab &lt;- subset(hostOneTab, Freq &gt; 0)
+
+xyplot(sqrt(Freq) ~ timeHour, groups = firstSeenDestPort, 
+   data = hostOneTab, auto.key = TRUE, type = c(&quot;p&quot;, &quot;g&quot;))
+</code></pre>
+
+<p><img src="figures/knitr/hostOnePlot.png" alt="plot of chunk hostOnePlot"> </p>
+
+<p>Probably not good that there are persistent ssh (port 22) connections or connection attempts - never lets up and looks too systematic to be a human?</p>
+
+<p>Look at the two spikes in web traffic in the above plot...</p>
+
+<p>To get the times that the spikes occur:</p>
+
+<pre><code class="r">subset(hostOneTab, Freq &gt; 1500)
+</code></pre>
+
+<pre><code>    firstSeenDestPort            timeHour Freq
+131                80 2013-04-13 07:00:00 3667
+134                80 2013-04-13 08:00:00 2518
+203                80 2013-04-14 07:00:00 4075
+206                80 2013-04-14 08:00:00 2091
+</code></pre>
+
+<p>Now to look at the first spike:</p>
+
+<pre><code class="r">spike1 &lt;- subset(hostOne, 
+   date &gt;= as.POSIXct(&quot;2013-04-13 07:00:00&quot;, tz = &quot;UTC&quot;) &amp;
+   date &lt;= as.POSIXct(&quot;2013-04-13 09:00:00&quot;, tz = &quot;UTC&quot;) &amp; 
+   firstSeenDestPort == 80)
+table(spike1$firstSeenDestIp)
+</code></pre>
+
+<pre><code>
+ 10.0.0.10  10.0.0.11  10.0.0.12  10.0.0.13  10.0.0.14   10.0.0.5   10.0.0.6   10.0.0.7 
+        82        100         84         98         59         94         73         98 
+  10.0.0.8   10.0.0.9 10.1.0.100 
+       118        100       5279 
+</code></pre>
+
+<p><code>10.1.0.100</code> is the source for up 85% of the HTTP connections during these 2 hours -- there are 5279 attempts in total from this address - 44 attempts per minute.  There could very well be some reasonable explanation for this.</p>
+
+<p>Is there anything unique about these HTTP connections?</p>
+
+<pre><code class="r">spike1$logPB &lt;- log10(spike1$firstSeenDestPayloadBytes + 1)
+spike1pbQuant &lt;- groupQuantile(spike1, &quot;firstSeenDestIp&quot;, &quot;logPB&quot;)
+
+xyplot(logPB ~ p * 100 | firstSeenDestIp, data = spike1pbQuant,
+   xlab = &quot;Percentile&quot;,
+   ylab = &quot;log10(firstSeenDestPayload + 1)&quot;,
+   layout = c(11, 1),
+   between = list(x = 0.25)
+)
+</code></pre>
+
+<p><img src="figures/knitr/spike1plot.png" alt="plot of chunk spike1plot"> </p>
+
+<p>Maybe that&#39;s interesting... <code>10.1.0.100</code> has a different distribution than others.  Look at other stuff...</p>
+
+<p>Now let&#39;s look at the second spike:</p>
+
+<pre><code class="r">spike2 &lt;- subset(hostOne, 
+   date &gt;= as.POSIXct(&quot;2013-04-14 07:00:00&quot;) &amp; 
+   date &lt;= as.POSIXct(&quot;2013-04-14 09:00:00&quot;))
+table(spike2$firstSeenDestIp)
+</code></pre>
+
+<pre><code>
+ 10.0.0.10  10.0.0.11  10.0.0.12  10.0.0.13  10.0.0.14   10.0.0.5   10.0.0.6   10.0.0.7 
+        66         66         83        104         94         94         97         85 
+  10.0.0.8   10.0.0.9  10.0.3.77 10.1.0.100 
+        90        107         12       5280 
+</code></pre>
+
+<p>This spike has the same story.  Dominated by <code>10.1.0.100</code>.</p>
+
+<p>Are there any other connections involving this IP for this host?</p>
+
+<pre><code class="r">nrow(subset(hostOne, firstSeenDestIp == &quot;10.1.0.100&quot;))
+</code></pre>
+
+<pre><code>[1] 10559
+</code></pre>
+
+<p>These time periods are the only times that this IP shows up.</p>
+
+</div>
+
+
+<div class='tab-pane' id='more-trelliscope-displays'>
+<h3>More Trelliscope Displays</h3>
+
+<p>Many many more things we can plot... just one - source vs. destination bytes...</p>
+
+<pre><code class="r">nfPanel &lt;- function(x) {
+   x$group &lt;- ifelse(x$firstSeenSrcIp == attributes(x)$split$hostIP, &quot;sending&quot;, &quot;receiving&quot;)
+   x$group &lt;- factor(x$group, levels = c(&quot;sending&quot;, &quot;receiving&quot;))
+   x$zeroDur &lt;- ifelse(x$durationSeconds == 0, &quot;0 seconds&quot;, &quot;&gt;0 seconds&quot;)
+   x$zeroDur &lt;- factor(x$zeroDur, c(&quot;0 seconds&quot;, &quot;&gt;0 seconds&quot;))
+   xyplot(log10(firstSeenSrcPayloadBytes + 1) ~ log10(firstSeenDestPayloadBytes + 1) | zeroDur, groups = group, data = x, 
+      auto.key = TRUE, 
+      # panel = log10p1panel,
+      # scales = log10p1scales,
+      between = list(x = 0.25),
+      grid = TRUE, logx = TRUE, logy = TRUE,
+      xlab = &quot;log10(Destination Payload Bytes + 1)&quot;,
+      ylab = &quot;log10(Source Payload Bytes + 1)&quot;
+   )
+}
+
+nfPanel(nfByHost[[1]][[2]])
+</code></pre>
+
+<p><img src="figures/knitr/trellPanel2.png" alt="plot of chunk trellPanel2"> </p>
+
+<pre><code class="r">
+nfCog &lt;- function(x) {
+   IP &lt;- attr(x, &quot;split&quot;)$hostIP
+   curHost &lt;- hostList[hostList$IP == IP,]
+
+   c(list(
+      hostName = cog(curHost$hostName, desc = &quot;host name&quot;),
+      IP = cog(IP, desc = &quot;host IP address&quot;),
+      type = cog(curHost$type, desc = &quot;host type&quot;),
+      nobs = cog(log10(nrow(x)), &quot;log 10 total number of connections&quot;),
+      propZeroDur = cog(length(which(x$durationSeconds == 0)), desc = &quot;proportion of zero duration connections&quot;)
+   ),
+   cogScagnostics(log10(x$firstSeenSrcPayloadBytes + 1), 
+      log10(x$firstSeenDestPayloadBytes + 1)))
+}
+
+nfCog(nfByHost[[1]][[2]])
+</code></pre>
+
+<pre><code>$hostName
+[1] &quot;wss1-288.bigmkt1.com&quot;
+
+$IP
+[1] &quot;172.10.2.35&quot;
+
+$type
+[1] &quot;Workstation&quot;
+
+$nobs
+[1] 2.905
+
+$propZeroDur
+[1] 610
+
+$outly
+[1] 0.251
+
+$skew
+[1] 0.8518
+
+$clumpy
+[1] 0.1945
+
+$sparse
+[1] 0.06203
+
+$striated
+[1] 0.3469
+
+$convex
+[1] 0.03085
+
+$skinny
+[1] 0.629
+
+$stringy
+[1] 0.7513
+
+$monoton
+[1] 0.1937
+</code></pre>
+
+<pre><code class="r">makeDisplay(nfByHost,
+   name = &quot;srcPayload_vs_destPayload&quot;,
+   panelFn = nfPanel,
+   cogFn = nfCog,
+   control = clc,
+   panelDim = list(width = 900, height = 600))
+</code></pre>
+
+</div>
+
+
+<div class='tab-pane' id='division-by-external-host'>
+<h3>Division by External Host</h3>
+
+<pre><code class="r">nfByExtHost &lt;- divide(nfByHost, by = &quot;extIP&quot;,
+   preTransFn = function(x) {
+      x$extIP &lt;- x$firstSeenSrcIp
+      x$extIP[x$srcIsHost] &lt;- x$firstSeenDestIp[x$srcIsHost]
+      x
+   },
+   output = localDiskConn(&quot;data/nfByExtHost&quot;),
+   control = clc
+)
+nfByExtHost &lt;- updateAttributes(nfByExtHost, control = clc)
+</code></pre>
+
+<p>Many interesting displays to be made for this division...</p>
+
+</div>
+
+
+<div class='tab-pane' id='division-by-time'>
+<h3>Division by Time</h3>
+
+<p>Split data up by minute</p>
+
+<pre><code class="r">nfByTime &lt;- divide(nfByHost, by = &quot;time10&quot;,
+   preTransFn = function(x) {
+      tmp &lt;- paste(substr(x$date, 1, 15), &quot;0:00&quot;, sep = &quot;&quot;)
+      x$time10 &lt;- as.POSIXct(tmp, tz = &quot;UTC&quot;)
+      x
+   },
+   output = localDiskConn(&quot;data/nfByTime&quot;),
+   control = clc
+)
+nfByTime &lt;- updateAttributes(nfByTime, control = clc)
+</code></pre>
+
+<p>Many interesting displays to make here as well...</p>
+
+</div>
+
+
+<div class='tab-pane' id='bb-exploration'>
+<h3>BB Exploration</h3>
+
+<p>Load the data and look at a subset...</p>
+
+<pre><code class="r">bbRaw &lt;- ddf(localDiskConn(&quot;data/bbRaw&quot;))
+head(bbRaw[[1]][[2]][,-5])
+</code></pre>
+
+<pre><code>       id             hostname servicename statusVal receivedfrom diskUsagePercent
+1 2131742 wss1-240.bigmkt1.com        conn         3   172.10.0.6               NA
+2 2131743 wss1-235.bigmkt1.com        conn         3   172.10.0.6               NA
+3 2131744 wss1-239.bigmkt1.com        conn         3   172.10.0.6               NA
+4 2131745 wss1-230.bigmkt1.com        conn         3   172.10.0.6               NA
+5 2131746 wss1-236.bigmkt1.com        conn         3   172.10.0.6               NA
+6 2131747 wss1-233.bigmkt1.com        conn         3   172.10.0.6               NA
+  pageFileUsagePercent numProcs loadAveragePercent physicalMemoryUsagePercent connMade
+1                   NA       NA                 NA                         NA        0
+2                   NA       NA                 NA                         NA        0
+3                   NA       NA                 NA                         NA        0
+4                   NA       NA                 NA                         NA        0
+5                   NA       NA                 NA                         NA        0
+6                   NA       NA                 NA                         NA        0
+                 time
+1 2013-04-15 08:34:24
+2 2013-04-15 08:34:24
+3 2013-04-15 08:34:24
+4 2013-04-15 08:34:24
+5 2013-04-15 08:34:24
+6 2013-04-15 08:34:24
+</code></pre>
+
+<p>...</p>
+
+</div>
+
+
+<div class='tab-pane' id='bb-by-host-division'>
+<h3>BB By Host Division</h3>
+
+<p>It turns out this data does not contain actual IPs, but instead the <code>hostname</code>, which is available in <code>hostList</code> which we can use to map to an IP address.  </p>
+
+<pre><code class="r">bbHostFreq &lt;- summary(bbRaw)$hostname$freqTable
+head(bbHostFreq)
+</code></pre>
+
+<pre><code>                value Freq
+5  mail01.bigmkt1.com 8577
+7  mail03.bigmkt3.com 8561
+6  mail02.bigmkt2.com 8560
+2    dc01.bigmkt1.com 7251
+3    dc02.bigmkt2.com 7246
+10 web01b.bigmkt1.com 7242
+</code></pre>
+
+<p>So to divide the data by host in a way that is similar to our netflow division, we need to first merge the <code>hostList</code> to get the actual IP.</p>
+
+<p>Also note that there is some redundancy in columns.  For a given record, for example, if <code>connMade</code> is specified, then several of the preceding columns are always <code>NA</code>.  We can basically break the grouping of reported fields down into the following list:</p>
+
+<pre><code class="r">fields &lt;- list(
+   list(name = &quot;disk&quot;, fields = &quot;diskUsagePercent&quot;),
+   list(name = &quot;page&quot;, fields = &quot;pageFileUsagePercent&quot;),
+   list(name = &quot;proc&quot;, fields = c(&quot;numProcs&quot;, &quot;loadAveragePercent&quot;, &quot;physicalMemoryUsagePercent&quot;)),
+   list(name = &quot;connMade&quot;, fields = &quot;connMade&quot;)
+)
+</code></pre>
+
+<p>We also want to exclude the big IPs like we did for netflow.  </p>
+
+<p>Here we apply a <code>preTransFn</code> to merge in <code>hostList</code>, and a <code>postTransFn</code> to be applied to the final groupings to get things into a per-field format for simpler structure and smaller data size.</p>
+
+<pre><code class="r">bigIPs &lt;- c(&quot;172.20.0.15&quot;, &quot;172.20.0.4&quot;, &quot;172.10.0.4&quot;, &quot;172.30.0.4&quot;)
+
+bbByHost &lt;- divide(bbRaw, by = &quot;hostIP&quot;,
+   preTransFn = function(x) {
+      x &lt;- merge(x, hostList, by.x = &quot;hostname&quot;, by.y = &quot;hostName&quot;, all.x = TRUE)
+      x &lt;- subset(x, !x$IP %in% bigIPs)
+      names(x)[names(x) == &quot;IP&quot;] &lt;- &quot;hostIP&quot;
+      x
+   },
+   postTransFn = function(x) {
+      x &lt;- x[order(x$time),]
+      res &lt;- list()
+      for(fld in fields) {
+         ind &lt;- which(!is.na(x[[fld$fields[1]]]))
+         if(length(ind) &gt; 0) {
+            nms &lt;- c(&quot;receivedfrom&quot;, &quot;time&quot;, fld$fields)
+            res[[fld$name]] &lt;- x[ind, nms]
+         }
+      }
+      res
+   },
+   output = localDiskConn(&quot;data/bbByHost&quot;),
+   control = clc
+)
+bbByHost &lt;- updateAttributes(bbByHost, control = clc)
+</code></pre>
+
+<p>Lots more to look at here...</p>
+
+<p>Here&#39;s an example of accessing and plotting data for a subset:</p>
+
+<pre><code class="r">d &lt;- bbByHost[[11]][[2]]
+xyplot(connMade ~ time, data = d$conn)
+</code></pre>
+
+<p><img src="figures/knitr/name1.png" alt="plot of chunk name"> </p>
+
+<pre><code class="r">xyplot(numProcs ~ time, data = d$proc)
+</code></pre>
+
+<p><img src="figures/knitr/name2.png" alt="plot of chunk name"> </p>
+
+<pre><code class="r">xyplot(physicalMemoryUsagePercent ~ time, data = d$proc)
+</code></pre>
+
+<p><img src="figures/knitr/name3.png" alt="plot of chunk name"> </p>
+
+<pre><code class="r">xyplot(loadAveragePercent ~ time, data = d$proc)
+</code></pre>
+
+<p><img src="figures/knitr/name4.png" alt="plot of chunk name"> </p>
+
+<pre><code class="r">xyplot(diskUsagePercent ~ time, data = d$disk)
+</code></pre>
+
+<p><img src="figures/knitr/name5.png" alt="plot of chunk name"> </p>
+
+<pre><code class="r">xyplot(pageFileUsagePercent ~ time, data = d$page)
+</code></pre>
+
+<p><img src="figures/knitr/name6.png" alt="plot of chunk name"> </p>
+
+</div>
+
+
+<div class='tab-pane' id='joining-with-netflow'>
+<h3>Joining with NetFlow</h3>
+
+<pre><code class="r">nfBbByHost &lt;- drJoin(bb = bbByHost, nf = nfByHost, 
+   output = localDiskConn(&quot;data/nfBbByHost&quot;), control = clc)
+</code></pre>
+
+<p>Now we have a distributed data object where each subset is a list of netflow and network health data for one host</p>
+
+<pre><code class="r">str(nfBbByHost[[1]][[2]])
+</code></pre>
+
+<pre><code>List of 2
+ $ bb:List of 2
+  ..$ disk    :&#39;data.frame&#39;:    321 obs. of  3 variables:
+  .. ..$ receivedfrom    : chr [1:321] &quot;172.10.1.254&quot; &quot;172.10.2.28&quot; &quot;172.10.2.50&quot; &quot;172.10.2.35&quot; ...
+  .. ..$ time            : POSIXct[1:321], format: &quot;2013-04-10 14:08:09&quot; &quot;2013-04-10 14:14:08&quot; ...
+  .. ..$ diskUsagePercent: int [1:321] 27 27 27 27 27 27 27 27 27 27 ...
+  ..$ connMade:&#39;data.frame&#39;:    1330 obs. of  3 variables:
+  .. ..$ receivedfrom: chr [1:1330] &quot;172.10.0.6&quot; &quot;172.10.0.6&quot; &quot;172.10.0.6&quot; &quot;172.10.0.6&quot; ...
+  .. ..$ time        : POSIXct[1:1330], format: &quot;2013-04-10 13:54:43&quot; &quot;2013-04-10 13:59:44&quot; ...
+  .. ..$ connMade    : int [1:1330] 1 1 1 1 1 1 1 1 1 1 ...
+  ..- attr(*, &quot;split&quot;)=&#39;data.frame&#39;:    1 obs. of  1 variable:
+  .. ..$ hostIP: chr &quot;172.10.2.35&quot;
+  ..- attr(*, &quot;class&quot;)= chr [1:2] &quot;divValue&quot; &quot;list&quot;
+ $ nf:Classes &#39;divValue&#39; and &#39;data.frame&#39;:  804 obs. of  19 variables:
+  ..$ dateTimeStr              : num [1:804] 2.01e+13 2.01e+13 2.01e+13 2.01e+13 2.01e+13 ...
+  ..$ ipLayerProtocol          : int [1:804] 6 6 6 6 6 6 6 6 6 6 ...
+  ..$ ipLayerProtocolCode      : chr [1:804] &quot;TCP&quot; &quot;TCP&quot; &quot;TCP&quot; &quot;TCP&quot; ...
+  ..$ firstSeenSrcIp           : chr [1:804] &quot;172.10.2.35&quot; &quot;172.10.2.35&quot; &quot;172.10.2.35&quot; &quot;172.10.2.35&quot; ...
+  ..$ firstSeenDestIp          : chr [1:804] &quot;10.0.0.5&quot; &quot;10.0.0.5&quot; &quot;10.1.0.75&quot; &quot;10.0.0.8&quot; ...
+  ..$ firstSeenSrcPort         : int [1:804] 11654 11653 18974 18978 18975 18984 18979 18998 18985 18999 ...
+  ..$ firstSeenDestPort        : int [1:804] 80 80 80 80 80 80 80 80 80 80 ...
+  ..$ moreFragments            : int [1:804] 0 0 0 0 0 0 0 0 0 0 ...
+  ..$ contFragments            : int [1:804] 0 0 0 0 0 0 0 0 0 0 ...
+  ..$ durationSeconds          : int [1:804] 25 0 0 0 4 0 3 0 2 2 ...
+  ..$ firstSeenSrcPayloadBytes : int [1:804] 183 175 176 175 184 176 183 176 184 184 ...
+  ..$ firstSeenDestPayloadBytes: int [1:804] 56228 432 433 432 3019646 433 3001706 433 3002186 3003086 ...
+  ..$ firstSeenSrcTotalBytes   : int [1:804] 2075 453 454 453 68216 454 66367 454 67896 66814 ...
+  ..$ firstSeenDestTotalBytes  : int [1:804] 58504 656 657 656 3138022 657 3119380 657 3120022 3120976 ...
+  ..$ firstSeenSrcPacketCount  : int [1:804] 32 5 5 5 1210 5 1188 5 1206 1195 ...
+  ..$ firstSeenDestPacketCount : int [1:804] 42 4 4 4 2192 4 2179 4 2182 2183 ...
+  ..$ recordForceOut           : int [1:804] 0 0 0 0 0 0 0 0 0 0 ...
+  ..$ date                     : POSIXct[1:804], format: &quot;2013-04-15 07:05:00&quot; &quot;2013-04-15 07:04:35&quot; ...
+  ..$ srcIsHost                : logi [1:804] TRUE TRUE TRUE TRUE TRUE TRUE ...
+  ..- attr(*, &quot;split&quot;)=&#39;data.frame&#39;:    1 obs. of  1 variable:
+  .. ..$ hostIP: chr &quot;172.10.2.35&quot;
+</code></pre>
+
+<p>Now we can use this info in per-host analyses and vis...</p>
+
+<pre><code>* &#39;loc&#39; is not an absolute path - prepending working directory
+* Loading connection attributes
+* Reading in existing &#39;ddo&#39; attributes
+* Reading in existing &#39;ddf&#39; attributes
+* &#39;loc&#39; is not an absolute path - prepending working directory
+* Loading connection attributes
+* Reading in existing &#39;ddo&#39; attributes
+* Reading in existing &#39;ddf&#39; attributes
+</code></pre>
+
+</div>
+
+
+<div class='tab-pane' id='ips-exploration'>
+<h3>IPS Exploration</h3>
+
+<pre><code class="r">head(ipsRaw[[1]][[2]])
+</code></pre>
+
+<pre><code>                 time priority operation  messageCode protocol        srcIp     destIp
+1 2013-04-11 20:21:48     Info  Teardown ASA-6-302014      TCP   10.0.2.181 172.30.0.3
+2 2013-04-11 20:21:48  Warning      Deny ASA-4-106023      TCP 10.12.15.152   10.0.2.8
+3 2013-04-11 20:21:48  Warning      Deny ASA-4-106023      TCP 10.12.15.152   10.0.2.2
+4 2013-04-11 20:21:48     Info     Built ASA-6-302013      TCP 10.12.15.152 172.10.0.4
+5 2013-04-11 20:21:48  Warning      Deny ASA-4-106023      TCP 10.12.15.152   10.0.2.6
+6 2013-04-11 20:21:48  Warning      Deny ASA-4-106023      TCP 10.12.15.152   10.0.2.7
+  srcPort destPort destService direction    flags command
+1   22853       25        smtp   inbound TCP FINs (empty)
+2   37552    13119   13119_tcp   (empty)  (empty) (empty)
+3   37551    26044   26044_tcp   (empty)  (empty) (empty)
+4   37733     3389    3389_tcp   inbound  (empty) (empty)
+5   37552    56212   56212_tcp   (empty)  (empty) (empty)
+6   37552    32493   32493_tcp   (empty)  (empty) (empty)
+</code></pre>
+
+<p>...</p>
+
+<pre><code class="r">summary(ipsRaw)$flags$freqTab
+</code></pre>
+
+<pre><code>                   value     Freq
+2                (empty) 12800999
+18              TCP FINs  1730775
+1                         1373553
+17           SYN Timeout   266077
+15               RST ACK   187176
+4     Connection timeout    97926
+20           TCP Reset-O    94864
+19           TCP Reset-I    25655
+9            FIN Timeout    11387
+3                    ACK     9001
+7            FIN PSH URG      677
+8        FIN SYN PSH URG      664
+10               INVALID      663
+16               SYN ACK      458
+6            FIN PSH ACK      398
+12       Pinhole timeout      397
+14                   RST      145
+13               PSH ACK       92
+11 Parent flow is closed       19
+5                FIN ACK        5
+</code></pre>
+
+<p>...</p>
+
+</div>
+
+
+<div class='tab-pane' id='ips-by-host-division'>
+<h3>IPS By Host Division</h3>
+
+<p>Note that the source and destination IPs often contain the pre-<a href="http://en.wikipedia.org/wiki/Network_address_translation">NAT</a>-ed IP.  We need to account for this when splitting the data up by host.  To do this, we merge in the <code>hostList</code> using the <code>externalIP</code> variable.</p>
+
+<pre><code class="r">ipsByHost &lt;- divide(ipsRaw, by = &quot;hostIP&quot;,
+   preTransFn = function(x) {
+      names(x)[names(x) == &quot;destIp&quot;] &lt;- &quot;destIpNat&quot;
+      # need to un-NAT the destination IP
+      x &lt;- merge(x, hostList[,c(&quot;IP&quot;, &quot;externalIP&quot;)], by.x = &quot;destIpNat&quot;, by.y = &quot;externalIP&quot;, all.x = TRUE)
+      names(x)[ncol(x)] &lt;- &quot;destIp&quot;
+      ind &lt;- is.na(x$destIp)
+      x$destIp[ind] &lt;- x$destIpNat[ind]
+      x &lt;- getHost(x, src = &quot;srcIp&quot;, dest = &quot;destIp&quot;)
+      subset(x, !x$hostIP %in% bigIPs)
+   },
+   output = localDiskConn(&quot;data/ipsByHost&quot;),
+   control = clc
+)
+ipsByHost &lt;- updateAttributes(ipsByHost, control = clc)
+</code></pre>
+
+<p>Let&#39;s look at the distribution of number of rows for each host:</p>
+
+<pre><code class="r">ipsRows &lt;- recombine(ipsByHost, apply = nrow, combine = combRbind(), control = clc)
+save(ipsRows, file = &quot;data/artifacts/ipsRows.Rdata&quot;)
+</code></pre>
+
+<p>What does the distribution look like?</p>
+
+<pre><code class="r">plot(log10(sort(ipsRows$val)))
+</code></pre>
+
+<p><img src="figures/knitr/ipsRowsPlot.png" alt="plot of chunk ipsRowsPlot"> </p>
+
+<p>There are some very large ones:</p>
+
+<pre><code class="r">ipsBig &lt;- subset(ipsRows, val &gt; 90000)
+merge(ipsBig, hostList, by. = &quot;hostIP&quot;, by.y = &quot;IP&quot;)
+</code></pre>
+
+<pre><code>       hostIP    val           hostName              type externalIP
+1  172.10.0.2 937697   dc01.bigmkt1.com Domain controller   10.0.2.2
+2  172.10.0.3 691167 mail01.bigmkt1.com              SMTP   10.0.2.3
+3  172.10.0.5 714053 web01a.bigmkt1.com              HTTP   10.0.2.5
+4  172.10.0.7 696533 web01c.bigmkt1.com              HTTP   10.0.2.6
+5  172.10.0.8 691346 web01d.bigmkt1.com              HTTP   10.0.2.7
+6  172.10.0.9 688785 web01b.bigmkt1.com              HTTP   10.0.2.8
+7  172.20.0.2 712539   dc02.bigmkt2.com Domain controller   10.0.3.2
+8  172.20.0.3 719471 mail02.bigmkt2.com              SMTP   10.0.3.3
+9  172.20.0.5 730561 web02a.bigmkt2.com              HTTP   10.0.3.5
+10 172.30.0.2 520017   dc03.bigmkt3.com Domain controller   10.0.4.2
+11 172.30.0.3 335407 mail03.bigmkt3.com              SMTP   10.0.4.3
+12 172.30.0.5 269911 web03a.bigmkt3.com              HTTP   10.0.4.5
+13 172.30.0.6 267349 web03b.bigmkt3.com              HTTP   10.0.4.6
+14 172.30.0.7 259080 web03c.bigmkt3.com              HTTP   10.0.4.7
+</code></pre>
+
+<p>...</p>
+
+<p>We can join this in with the other data sets by host as well...</p>
+
+</div>
+
+
+<div class='tab-pane' id='r-code'>
+<h3>R Code</h3>
+
+<p>If you would like to run through all of the code examples in this documentation without having to pick out each line of code from the text, below are files with the R code for each section.</p>
+
+<ul>
+<li><a href="code/00_init.R">Getting Set Up</a></li>
+<li><a href="code/01_read.R">Raw Data ETL</a></li>
+<li><a href="code/02_explore.R">NetFlow Exploration</a></li>
+<li><a href="code/03_dnr.R">NetFlow D&amp;R</a></li>
+<li><a href="code/04_bb.R">Network Health Data</a></li>
+<li><a href="code/05_ips.R">IPS Data</a></li>
+</ul>
+
+</div>
+
+   
+   <ul class="pager">
+      <li><a href="#" id="previous">&larr; Previous</a></li> 
+      <li><a href="#" id="next">Next &rarr;</a></li> 
+   </ul>
+</div>
+
+
+</div>
+</div>
+
+<hr>
+
+<div class="footer">
+   <p>&copy; Ryan Hafen, 2014</p>
+</div>
+</div> <!-- /container -->
+
+<script src="assets/jquery/jquery.js"></script>
+<script type='text/javascript' src='assets/custom/custom.js'></script>
+<script src="assets/bootstrap/js/bootstrap.js"></script>
+<script src="assets/custom/jquery.ba-hashchange.min.js"></script>
+<script src="assets/custom/nav.js"></script>
+
+</body>
+</html>

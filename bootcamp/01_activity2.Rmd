@@ -1,0 +1,259 @@
+```
+
+```{r eval=TRUE, echo=FALSE, message=FALSE, purl=FALSE}
+options(width = 90)
+Sys.setenv(TZ = "UTC")
+library(datadr)
+library(trelliscope)
+library(cyberTools)
+library(Rhipe)
+rhinit()
+rhoptions(runner = "/share/apps/R/3.0.2/bin/R CMD /share/apps/R/3.0.2/lib64/R/library/Rhipe/bin/RhipeMapReduce --slave --silent --vanilla")
+setwd("~/vast")
+hdfs.setwd("/user/hafe647/vast")
+```
+
+# R Bootcamp #
+
+## Activity 2: Raw Data ETL and Data Familiarization ##
+
+### Activity 2.1: Environment Setup ###
+
+```{r activity2, eval=FALSE, echo=FALSE, purl=TRUE}
+###########################################################
+### Activity 2: Raw Data ETL and Data Familiarization
+###########################################################
+
+###########################################################
+### Activity 2.1
+### Session initialization
+###########################################################
+```
+
+```{r activity2.1, eval=TRUE, echo=TRUE, message=FALSE}
+# load required packages and initialize Rhipe
+library(datadr)
+library(Rhipe)
+library(cyberTools)
+rhinit()
+# set Rhipe runner (specific to this cluster)
+rhoptions(runner = "/share/apps/R/3.0.2/bin/R CMD /share/apps/R/3.0.2/lib64/R/library/Rhipe/bin/RhipeMapReduce --slave --silent --vanilla")
+
+# set time zone to "UTC" for use with dates in the data
+Sys.setenv(TZ = "UTC")
+
+# set working directories on local machine and HDFS
+setwd("~/vast")
+# change "hafe647" to your username
+hdfs.setwd("/user/hafe647/vast")
+
+# make sure data sample is present locally
+list.files(pattern=".csv")
+
+# make sure raw text data has been copied to HDFS
+rhls("raw/nf")
+```
+
+### Activity 2.2: Read NetFlow csv Data to R Objects ###
+
+```{r name, eval=FALSE, echo=FALSE, purl=TRUE}
+###########################################################
+### Activity 2.2
+### Read NetFlow csv data to R objects
+###########################################################
+```
+
+One of the more tedious parts of data analaysis can be getting the data into the proper format for analysis.  `datadr` stives to provide as much functionality to make this process as painless as possible, but there will always be special situations that require unique solutions.
+
+For analysis in `datadr`, we want to take the raw data and store it as native R objects.  This provides a great degree of flexibility in what type of data structures we can use, such as non-tabular data or special classes of R objects like time series or spatial objects.
+
+Here, all of our input data is text.  Text files are used quite often for storing and sharing big data.  For example, often [Hive](https://hive.apache.org) tables are stored as text files.  `datadr` provides some helpful functions that make it easy to deal with reading in text data and storing it as R objects..  
+
+In this activity we will go through how to read the NetFlow data from text.  These examples read the data using a simple function `drRead.csv()` which has a similar interface to R's `read.csv()` function.
+
+#### NetFlow Data
+
+We saw from before that the NetFlow data is located on HDFS at `raw/nf/nf-week2.csv`.  We also have a small sample of it available on our local machine in our working directory, called `nf-week2-sample.csv`.
+
+To get a feel for what it looks like, we'll read this sample data set first using R's built-in function `read.csv()`.
+
+<div class="callout callout-danger"><strong>Note: </strong>A common paradigm when using datadr is to test code on a subset of the data prior to applying it to the entire data set.  We will see this frequently throughout this boot camp.</div>
+
+#### Looking at a subset
+
+To read in and look at the first 10 rows:
+
+```{r eval=TRUE, echo=TRUE}
+# read in 10 rows of NetFlow data from local disk
+nfHead <- read.csv("nf-week2-sample.csv", nrows = 10, stringsAsFactors = FALSE)
+```
+
+Here's what the first few rows and some of the columns of this data look like:
+
+```{r eval=TRUE, echo=TRUE}
+# look at first 10 rows for some variables
+nfHead[1:10,3:7]
+```
+
+Let's look at the structure of the object to see all the columns and their data types:
+
+```{r eval=TRUE, echo=TRUE}
+# look at structure of the data
+str(nfHead)
+```
+
+This looks like it is almost in a suitable form for analysis.  However, there are two columns that correspond to time, and neither is in a handy R-native format.  Instead of having a column for `TimeSeconds` and `parsedDate`, let's create a new column `time` that is an R `POSIXct` object.
+
+```{r eval=TRUE, echo=TRUE}
+# make new date variable
+nfHead$date <- as.POSIXct(as.numeric(as.character(nfHead$TimeSeconds)), origin = "1970-01-01", tz = "UTC")
+# remove old time variables
+nfHead <- nfHead[,setdiff(names(nfHead), c("TimeSeconds", "parsedDate"))]
+```
+
+Let's now make this operation a function, so that when we read in new rows of the data, we can just pass it through the function to obtain the preferred format:
+
+```{r eval=TRUE, echo=TRUE}
+# make a nice transformation function based on our previous steps
+nfTransform <- function(x) {
+   x$date <- as.POSIXct(as.numeric(as.character(x$TimeSeconds)), origin = "1970-01-01", tz = "UTC")
+   x[,setdiff(names(x), c("TimeSeconds", "parsedDate"))]
+}
+```
+
+#### HDFS connections
+
+We are reading text data from HDFS and will be storing the data we read to HDFS.  When working with HDFS in `datadr`, we create *HDFS connections*.  An HDFS connection is simply defined by the path where we would like the data to be stored on HDFS and the file type (such as "text").  
+
+For the input connection, we want to point to `raw/nf`, and make sure it is known that it is "text" data:
+
+```{r csvConn, eval=TRUE, echo=TRUE}
+# initiate a connection to existing csv text file on HDFS
+csvConn <- hdfsConn("raw/nf", type = "text")
+```
+
+The output connection should be an empty directory, and can be a nonexistent directory.  Here, we would like to store our parsed NetFlow data in `nfRaw`.  We initialize this connection with a call to `hdfsConn()`:
+
+```{r eval=TRUE, results='hide', echo=TRUE, message=FALSE}
+# initiate a new connection where parsed NetFlow data will be stored
+nfConn <- hdfsConn("nfRaw")
+```
+
+This will prompt for whether you want the directory to be created if it does not exist.  `nfConn` is now simply an R object that points to this location on HDFS:
+
+```{r eval=TRUE, echo=TRUE}
+# look at the connection
+nfConn
+```
+
+We can now use these objects in our csv reader.
+
+#### Reading in the data
+
+There is a handy function in `datadr` that is the analog to `read.csv`, called `drRead.csv`, which reads the data in in blocks.  It has the same calling interface as R's `read.csv` with additional arguments to specify where to store the output, how many rows to put in each block, and an optional transformation function to apply to each block prior to storing it.
+
+We will read in the NetFlow csv file using the default number of rows per block (`50000`), apply our `nfTransform` function that adds the `time` variable, and save the output to our `nfConn` local disk connection:
+
+```{r eval=FALSE, echo=TRUE, results='hide', message=FALSE}
+# read in NetFlow data
+nfRaw <- drRead.csv(csvConn, output = nfConn, postTransFn = nfTransform)
+```
+
+### Activity 2.3: Getting Familiar with Distributed Data Objects ###
+
+```{r activity2.3, eval=FALSE, echo=FALSE, purl=TRUE}
+###########################################################
+### Activity 2.3
+### Getting Familiar with Distributed Data Objects
+###########################################################
+```
+
+Let's take a look at `nfRaw` to see what the object looks like:
+
+```{r eval=TRUE, echo=FALSE, message=FALSE, purl=FALSE}
+# since we will have already updated the attributes, set them back to NA for a minute
+# (doing this instead of caching...)
+{
+nfRaw <- ddf(hdfsConn("nfRaw"))
+tmpNfAttr <- getAttributes(nfRaw, c("keys", "totObjectSize", "splitSizeDistn", "bsvInfo", "nRow", "splitRowDistn", "summary"))
+nfRaw <- setAttributes(nfRaw, list(keys = NA, totObjectSize = NA, splitSizeDistn = NA, bsvInfo = NA, nRow = NA, splitRowDistn = NA, summary = NA))
+}
+```
+
+```{r eval=TRUE, echo=TRUE}
+# look at the nfRaw object
+nfRaw
+```
+
+`nfRaw` is a *distributed data frame* (ddf), and we see several aspects about the data printed.  For example, we see that there are 466 subsets and that the size of the data on HDFS is `totStorageSize` = `r round(getAttribute(nfRaw, "totStorageSize") / 1024^3, 2)` Mb.  The other attributes will be updated in a moment.
+
+The `nfRaw` object itself is simply a special R object that contains metadata and pointers to the actual data stored on disk.  For more background on ddf and related objects, see [here](http://hafen.github.io/datadr/index.html#distributed-data-objects) and [here](http://hafen.github.io/datadr/index.html#distributed-data-frames), and particularly for ddf objects on local disk, see [here](http://hafen.github.io/datadr/index.html#medium-disk--multicore).
+
+In any subsequent R session, we can "reload" this data object with the following:
+
+```{r eval=TRUE, echo=TRUE, results='hide', message=FALSE, purl=TRUE}
+# reload "nfRaw" by loading the connection as a ddf
+nfRaw <- ddf(hdfsConn("nfRaw"))
+```
+
+Earlier we saw in the printout of `nfRaw` that it has many attibutes that have not yet been determined.  We can fix this by calling `updateAttributes()`:
+
+```{r eval=FALSE, echo=TRUE}
+# get missing attributes
+nfRaw <- updateAttributes(nfRaw)
+```
+
+Now we can see more meaningful information about our data:
+
+```{r eval=TRUE, echo=FALSE, message=FALSE, purl=FALSE}
+# set attributes back as if we updated nfRaw
+nfRaw <- setAttributes(nfRaw, c(tmpNfAttr$ddo, tmpNfAttr$ddf))
+```
+
+```{r eval=TRUE, echo=TRUE}
+# look at the updated nfRaw object
+nfRaw
+```
+
+We now see that there are about 23 million rows of data, and we are supplied, among other things, with summary statistics for the variables in the ddf.
+
+#### DDF attributes
+
+Since `nfRaw` is a distributed data frame, we can look at various aspects of the data frame through familiar R methods.
+
+We can see variable names:
+
+```{r eval=TRUE, echo=TRUE}
+# see what variables are available
+names(nfRaw)
+```
+
+We can get number of rows:
+
+```{r nrowNfRaw, eval=TRUE, echo=TRUE}
+# get total number of rows
+nrow(nfRaw)
+```
+
+We can grab the first subset and look at its structure:
+
+```{r eval=TRUE, echo=TRUE}
+# look at the structure of the first key-value pair
+str(nfRaw[[1]])
+```
+
+We can view summaries of the variables in the distributed data frame:
+
+```{r eval=TRUE, echo=TRUE}
+# look at summaries (computed from updateAttributes)
+summary(nfRaw)
+```
+
+The `summary()` method provides a nice overview of the variables in our distributed data frame.  For categorical variables, it provides a frequency table, and for numeric variables, it provides summary statistics such as moments (mean, standard deviation, etc.), range, etc.
+
+There are several insights we can get from the data by simply scanning the summary output printed above.  For example, the variable `ipLayerProtocolCode` tells us that the vast majority of the connections monitored are [TCP][TCP-wik] connections, while [UDP][UDP-wik] connections make up a little less than 1% of the traffic.  Also, all other protocols are rolled up into an "other" category.  We also see that timestamp of the data ranges from April 9, 2013 to April 15.  We also see that the variable `recordForceOut` is all zeros (min and max are zero).  Recall that all variables are described [here](docs/data/NetFlow_NetworkHealth.pdf)).
+
+There are other simple insights we can gain from scanning this the summary output, but we can get better insights by visualizing the summaries in more detail, which we will do in the following session.
+
+<div class="callout callout-danger"><strong>Note: </strong>A good place to start in an exploratory analysis is to look at summary statistics.  The summary information that comes with distributed data frames provides a simple way to start looking at the data.</div>
+

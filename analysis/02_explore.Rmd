@@ -1,0 +1,1155 @@
+```
+
+```{r eval=TRUE, echo=FALSE, message=FALSE, purl=FALSE}
+options(width = 90)
+Sys.setenv(TZ = "UTC")
+library(datadr)
+library(trelliscope)
+library(cyberTools)
+setwd("~/Documents/Code/vastChallenge")
+cl <- makeCluster(8)
+clc <- localDiskControl(cluster = cl)
+load("data/artifacts/dsqDestType.Rdata")
+load("data/artifacts/dsqSrcType.Rdata")
+load("data/artifacts/dsq.Rdata")
+load("data/artifacts/dsqPort.Rdata")
+load("data/artifacts/srcIpByte.Rdata")
+load("data/artifacts/in2in.Rdata")
+load("data/artifacts/srcDestInsideTab.Rdata")
+load("data/artifacts/bigTimeAgg.Rdata")
+load("data/artifacts/busiest.Rdata")
+load("data/artifacts/bigTimesHostAgg.Rdata")
+load("data/artifacts/timeAgg.Rdata")
+```
+
+## NetFlow Exploration ##
+
+### Source/Destination IP Frequency ###
+
+We'll start exploring the data by looking at some summaries of the NetFlow data by studying our `nfRaw` data object.  As we saw before, simply printing out the object gives us some high-level information about the data:
+
+```{r eval=TRUE, echo=TRUE, message=FALSE}
+# load our data back if we are in a new session
+nfRaw <- ddf(localDiskConn("data/nfRaw"))
+nfRaw
+```
+
+Since `nfRaw` is a distributed data frame, we can look at various aspects of the data frame through familiar R methods.
+
+We can see variable names:
+
+```{r eval=TRUE, echo=TRUE}
+# see what variables are available
+names(nfRaw)
+```
+
+We can get number of rows:
+
+```{r nrowNfRaw, eval=TRUE, echo=TRUE}
+# get total number of rows
+nrow(nfRaw)
+```
+
+We can grab the first subset and look at its structure:
+
+```{r eval=TRUE, echo=TRUE}
+# look at the structure of the first key-value pair
+str(nfRaw[[1]])
+```
+
+We can view summaries of the variables in the distributed data frame:
+
+```{r eval=TRUE, echo=TRUE}
+# look at summaries (computed from updateAttributes)
+summary(nfRaw)
+```
+
+The `summary()` method provides a nice overview of the variables in our distributed data frame.  For categorical variables, it provides a frequency table, and for numeric variables, it provides summary statistics such as moments (mean, standard deviation, etc.), range, etc.
+
+<div class="callout callout-danger"><strong>Note: </strong>A good place to start in an exploratory analysis is to look at summary statistics.  The summary information that comes with distributed data frames provides a simple way to start looking at the data.</div>
+
+There are several insights we can get from the data by simply scanning the summary output printed above.  For example, the variable `ipLayerProtocolCode` tells us that the vast majority of the connections monitored are [TCP][TCP-wik] connections, while [UDP][UDP-wik] connections make up about half a percentage point of the traffic.  Also, all other protocols are rolled up into an "other" category.  We also see that the timestamp of the data ranges from April 1, 2013 to April 15.  We also see that the variable `recordForceOut` is all zeros (min and max are zero), meaning that there are no  (recall that all variables are described [here](docs/data/NetFlow_NetworkHealth.pdf)).  
+
+There are other simple insights we can gain from scanning this the summary output, but we can get better insights by visualizing the summaries in more detail.
+
+#### First seen source IP
+
+We want to better understand the distribution of first seen source IP addresses in the data.  Note that in the summary printout above, we only see the top 4 IP addresses in the summary info for `firstSeenSrcIp`.  We can extract the full frequency table from the summary with the following:
+
+```{r eval=TRUE, echo=TRUE}
+# grab the full frequency table for firstSeenSrcIp
+srcIpFreq <- summary(nfRaw)$firstSeenSrcIp$freqTable
+# look at the top few IPs
+head(srcIpFreq)
+```
+
+To get more information about the IP addresses in this table, we can rely on the list of hosts provided with the raw data.  We have included this data, called `hostListOrig` with the `cyberTools` package:
+
+```{r eval=TRUE, echo=TRUE}
+head(hostListOrig)
+```
+
+This data provides additional information about IP addresses in our data, such as the type of machine and the name of the host.  This data provides a nice augmentation for our frequency table.  We can merge it in with the `mergeHostList()` function provided with `cyberTools`.  This function expects to recieve an input data frame and the name of the variable that contains the IP addresses to be merged to.  We also specify `original = TRUE` so that the function uses the original host list provided with the data, as opposed to incorporating modifications we will discover.
+
+```{r eval=TRUE, echo=TRUE}
+srcIpFreq <- mergeHostList(srcIpFreq, "value", original = TRUE)
+head(srcIpFreq)
+```
+
+Now we can see, for example, what types of hosts are in the data:
+
+```{r eval=TRUE, echo=TRUE}
+# see how many of each type we have
+table(srcIpFreq$type)
+```
+
+```{r eval=FALSE, echo=FALSE, purl=FALSE}
+# have all been assigned a type?
+subset(srcIpFreq, is.na(type))
+```
+
+Most are workstations.  Four are listed as "Other".  Let's look at these:
+
+```{r eval=TRUE, echo=TRUE}
+# look at "Other" IP addresses
+subset(srcIpFreq, type == "Other")
+```
+
+These are private internal IPs and it is interesting that they are in the data.  We should look into this.
+
+From the table, there are also 103 "other 177.*" addresses that warrant further scrutiny.
+
+#### A potential issue with the provided host list
+
+From the documentation, it appears that IPs that are inside the network are of the form `172.x.x.x`.  `mergeHostList()` finds IPs that are of this form that are not listed in `hostListOrig` and gives them the classification `"Other 172.*"`.  Let's look at these:
+
+```{r eval=TRUE, echo=TRUE}
+# look at 172.x addresses that aren't in our host list
+sort(subset(srcIpFreq, type == "Other 172.*")$value)
+```
+
+There is a whole block of IPs: `172.20.1.101` - `172.20.1.200` that is in this list, along with `172.0.0.1`, `172.10.0.50`, `172.10.0.6`.  
+
+Looking at the [network diagram](docs/data/NetworkArhictecture.pdf) provided with the data, `172.0.0.1` address appears to be a gateway router switch.
+
+We will see that `172.10.0.6` is the most common address that is sending big brother reports.
+
+The block of 100 hosts uncategorized "`172.20.1.x`" hosts, however, is curious.  Let's see if there are IPs of form `172.20.1.x` are in `hostListOrig`:
+
+```{r eval=TRUE, echo=TRUE}
+hostListOrig$IP[grepl("172\\.20\\.1", hostListOrig$IP)]
+```
+
+It looks like everything in the address space but `101-200` is in the list.  Checking with the data provider, these addresses are workstations that got left off of the host list.
+
+<div class="callout callout-danger"><strong>Note: </strong>Although this is a minor issue that we were able to rectify quickly by speaking with the people familiar with the network, this goes to show how important it is to have the tools and the willingness to flexibly look at the data, as well as people to converse with who are familiar with the environment from which the data is being generated.  Real-world data is never perfect - each new data set has its own new challenges in terms of understanding the data and its integrity.  We have barely begun our analysis and have only looked at some simple summaries, and already have a good insight that will help us in subsequent analyses.</div>
+
+With this knowledge, we have updated `mergeHostList()` to assign the 100 unclassified `172.20.1.x` hosts as workstations, and `172.0.0.1` as the gateway switch.
+
+```{r eval=TRUE, echo=TRUE}
+srcIpFreq <- summary(nfRaw)$firstSeenSrcIp$freqTable
+srcIpFreq <- mergeHostList(srcIpFreq, "value")
+table(srcIpFreq$type)
+```
+
+#### Distribution of source IP frequency by type
+
+Now let's get a better idea of the distribution the number of times an IP address is present as first seen source IP.  A nice way to do this visually is to create a [quantile plot](https://www.stat.auckland.ac.nz/~ihaka/787/lectures-quantiles.pdf), which basically plots the sorted data vs. where the what fraction of the data is smaller than the sorted point.
+
+```{r eval=TRUE, echo=TRUE, fig.width=9, fig.height=5}
+# for each type, get the quantiles
+srcIpFreqQuant <- groupQuantile(srcIpFreq, "type")
+
+# quantile plot by host type
+xyplot(Freq ~ p | type, data = srcIpFreqQuant, 
+   layout = c(7, 1), type = c("p", "g"), 
+   between = list(x = 0.25), 
+   scales = list(y = list(log = 10)),
+   subset = type != "Other",
+   xlab = "Sample Fraction",
+   ylab = "Number of Connections as Source IP"
+)
+```
+
+There are some interesting observations we can make from this plot:
+
+- There are 4 web servers (HTTP) with 3 orders of magnitude more traffic than the other web servers
+- The distribution of number of times a workstation appears as first seen source IP has a couple of large outliers
+- Aside from the outliers, the workstation distribution also shows three distinct jumps - perhaps different types of workstations
+- There are some interesting clumps of points in the distribution of External IPs
+
+#### Distribution of source and destination IP by type
+
+It would be interesting to also add in the distribution of the number times an address shows up as first seen destination IP address.
+
+We can follow the same process as we did with first seen source IP:
+
+```{r eval=TRUE, echo=TRUE, fig.width=8}
+destIpFreq <- summary(nfRaw)$firstSeenDestIp$freqTable
+destIpFreq <- mergeHostList(destIpFreq, "value", original = TRUE)
+destIpFreqQuant <- groupQuantile(destIpFreq, "type")
+```
+
+```{r eval=FALSE, echo=FALSE, purl=FALSE}
+# quantile plot by host type
+xyplot(Freq ~ 100 * p | type, data = destIpFreqQuant, 
+   layout = c(8, 1), type = c("p", "g"), 
+   between = list(x = 0.25), 
+   scales = list(y = list(log = 10)),
+   xlab = "Percentile",
+   ylab = "Number of Connections as Destination IP",
+   aspect = 3
+)
+```
+
+Let's look to make sure that all IPs were matched (if an IP was not matched, it will be given `type = "Other"`):
+
+```{r eval=TRUE, echo=TRUE, purl=TRUE}
+subset(destIpFreq, type == "Other")
+```
+
+There are a few that don't get matched.  These are interesting IPs.  After some research, the following seem like good explanations for these:
+
+- `169.254.x.x` are most-likely link-local IPs from [Automatic Private IP Addressesing (APIPA)](http://en.wikipedia.org/wiki/Link-local_address), or they could be due to a router malfunction - this is a very small number as compared to the total number of connections
+- `224.0.0.252` is most-likely [Link Local Multicast Name Resolution (LLMNR)](http://en.wikipedia.org/wiki/Link-local_Multicast_Name_Resolution) - this is a Windows thing
+- `239.255.255.250` is most-likely [Simple Service Discovery Protocol (SSDP)](http://en.wikipedia.org/wiki/Simple_Service_Discovery_Protocol)
+- `255.255.255.255` is often [Dynamic Host Configuration Protocol (DHCP)](http://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol)
+
+These are all things we will want to be aware of in subsequent analyses.
+
+For now, we will lump all of them into an "other" category.  We have modified `mergeHostList()` to do this without the `original = TRUE` setting we used before:
+
+```{r eval=TRUE, echo=TRUE}
+destIpFreq <- summary(nfRaw)$firstSeenDestIp$freqTable
+destIpFreq <- mergeHostList(destIpFreq, "value")
+```
+
+Let's check the "Other 172.*" addresses in the data:
+
+```{r eval=TRUE, echo=TRUE}
+subset(destIpFreq, type == "Other 172.*")
+```
+
+The only new one is `172.255.255.255`.  This is a multicast IP to all machines in the inside network.
+
+Now let's compute the first seen destination IP distribution by type and join it with the source distribution data and plot the quantiles together:
+
+```{r eval=TRUE, echo=TRUE, fig.width=9, fig.height=5}
+# for each type, get the quantiles of counts for destination IPs
+destIpFreqQuant <- groupQuantile(destIpFreq, "type")
+
+# combine source and destination quantile data
+srcDestIpFreqQuant <- make.groups(source = srcIpFreqQuant, destination = destIpFreqQuant)
+
+# plot quantiles for source and destination overlayed
+xyplot(Freq ~ 100 * p | type, groups = which, 
+   data = srcDestIpFreqQuant, 
+   layout = c(7, 1), type = c("p", "g"), 
+   between = list(x = 0.25), 
+   scales = list(y = list(log = 10)),
+   xlab = "Percentile",
+   ylab = "Number of Connections",
+   subset = type != "Other",
+   auto.key = TRUE
+)
+```
+
+Some observations:
+
+- Workstations show up as first seen source IP more than they do for first seen destination IP.  Trusting that first seen source is most often the originator, this means workstation-type hosts initiate connections less often than receive connections
+- Domain controller, HTTP, SMTP show up more frequently as first seen destination
+
+#### Source and destination IP frequency scatterplot
+
+Now let's merge counts so that we have a count of source and destination for each host:
+
+```{r eval=TRUE, echo=TRUE, fig.width=9, fig.height=6}
+freqMerge <- merge(srcIpFreq, destIpFreq[,c("value", "Freq", "type")], by="value",
+suffixes = c(".src", ".dest"), all = TRUE)
+freqMerge$type <- freqMerge$type.src
+freqMerge$type[is.na(freqMerge$type)] <- freqMerge$type.dest[is.na(freqMerge$type)]
+freqMerge$Freq.src[is.na(freqMerge$Freq.src)] <- 0
+freqMerge$Freq.dest[is.na(freqMerge$Freq.dest)] <- 0
+
+xyplot(log10(Freq.dest + 1) ~ log10(Freq.src + 1) | type, data = freqMerge,
+   # scales = list(relation = "free"),
+   xlab = "log10 number of times host is first seen source",
+   ylab = "log10 number of times host is first seen dest",
+   # subset = !type %in% c("SMTP", "Administrator", "Domain controller"),
+   type = c("p", "g"),
+   panel = function(x, y, ...) {
+      panel.xyplot(x, y, ...)
+      panel.abline(a = 0, b = 1)
+   },
+   between = list(x = 0.25, y = 0.25),
+   as.table = TRUE,
+   aspect = "iso"
+)
+
+freqMerge <- merge(srcIpFreq, destIpFreq[,c("value", "Freq", "type")], by="value",
+suffixes = c(".src", ".dest"), all = TRUE)
+freqMerge$type <- freqMerge$type.src
+freqMerge$type[is.na(freqMerge$type)] <- freqMerge$type.dest[is.na(freqMerge$type)]
+freqMerge$Freq.src[is.na(freqMerge$Freq.src)] <- 0
+freqMerge$Freq.dest[is.na(freqMerge$Freq.dest)] <- 0
+```
+
+We add a `y = x` line to separate hosts who appear in the data more as source than dest.
+
+Some observations:
+
+- HTTP, Admin, DC, and SMTP are more often dest than source
+- External is mixed
+- There is a small cluster of workstations with more source but same dest
+- There is one web server (HTTP) that is never the first seen destination
+- ...
+
+Let's look at just workstations - it looks like there is some interesting behavior there.
+
+```{r name, eval=TRUE, echo=TRUE}
+xyplot(log2(Freq.dest + 1) ~ log2(Freq.src + 1), data = freqMerge,
+   xlab = "log10 number of times host is first seen source",
+   ylab = "log10 number of times host is first seen dest",
+   type = c("p", "g"),
+   subset = type == "Workstation",
+   aspect = "iso",
+   alpha = 0.4
+)
+```
+
+There are some clusters of source/dest counts which call for investigation.
+
+
+```{r eval=FALSE, echo=FALSE, purl=FALSE, message=FALSE}
+{
+# Here's another way to look at the src/dest relationship per host, plotting the ratio of number of times it is source vs. dest:
+freqMerge$srcDestRatio <- log10(freqMerge$Freq.src) - log10(freqMerge$Freq.dest)
+freqMergeQuant <- groupQuantile(freqMerge, "type", "srcDestRatio")
+
+xyplot(srcDestRatio ~ p | type, groups = srcDestRatio < 0,
+   data = freqMergeQuant,
+   # scales = list(y = list(relation = "free")),
+   layout = c(7, 1),
+   panel = function(x, y, ...) {
+      panel.abline(h = -4:4, col = "#e6e6e6")
+      panel.xyplot(x, y, ...)
+      panel.abline(h = 0, lty = 2)
+   },
+   between = list(x = 0.25),
+   ylab = "Ratio of # times source vs. # times destination",
+   scales = list(y = list(at = c(-4:4), labels = paste("10^", -4:4, sep = "")))
+)
+
+tmp <- subset(freqMergeQuant, type == "Workstation")
+median(tmp$srcDestRatio)
+
+median(tmp$Freq.src / tmp$Freq.dest)
+# workstations initiate on average about 40x more connections than they receive
+}
+```
+
+Now let's look at the hosts that show up the most as either source or dest:
+
+```{r eval=TRUE, echo=TRUE}
+freqMerge$tot <- freqMerge$Freq.src + freqMerge$Freq.dest
+freqMerge <- freqMerge[order(freqMerge$tot, decreasing = TRUE),]
+topTot <- head(freqMerge, 10)
+topTot
+```
+
+There are four web servers with extremely high numbers of connections.  The rest are external IPs.  One external IP outdoes the next highest external IP by 3.5 times.
+
+```{r eval=TRUE, echo=TRUE}
+bigIPs <- topTot$value[c(1:2, 4:5)]
+```
+
+We will investigate why these IPs are so large in the following section.
+
+### Most Active Host IPs ###
+
+We noticed that there are four web servers with an inordinately large number of connections.  We want to investigate why this is the case.
+
+#### Aggregate counts per minute for each "big" HTTP host
+
+To start to drill down on these machines, we can look at the time series of counts within each minute for each of the four IP addresses, but this will require some computation on `nfRaw`.  So far, we have used the precomputed frequency tables for simple summary analyses.  In this case, we would like to count how many connections there were each minute for each of the big IP addresses.  Such tabulation is an example of a "division-agnostic" method - a method we would like to run over the entire data set regardless of how it is divided.
+
+In datadr, there is a function `drXtabs()` that does this.  It's interface is very similar to the familiar `xtabs()` available in base R that computes cross tabulations, e.g.:
+
+```{r eval=TRUE, echo=TRUE}
+data.frame(xtabs(~ Species, data = iris))
+```
+
+As with `xtabs()`, at a minimum, we provide `drXtabs()` a formula specifying the tabulation and the input data (must be a ddf or coercible to one).  We also subset the data to the four big IP addresses prior to performing the tabulation and create a variable that will help us bin by minute through the use of the `transFn` argument.
+
+```{r bigTimeAgg, eval=FALSE, echo=TRUE}
+# aggregate by minute and IP for just "bigIPs"
+bigTimeAgg <- drXtabs(~ timeMinute + firstSeenDestIp, 
+   data = nfRaw, 
+   transFn = function(x) {
+      x <- subset(x, firstSeenDestIp %in% bigIPs)
+      x$timeMinute <- as.POSIXct(trunc(x$date, 0, units = "mins"))
+      x
+   }, control = clc)
+```
+
+Now we do a little cleanup:  
+
+```{r bigTimeAggClean, eval=TRUE, echo=TRUE}
+# sort the result by IP and time
+bigTimeAgg <- bigTimeAgg[order(bigTimeAgg$firstSeenDestIp, bigTimeAgg$timeMinute),]
+# convert time to POSIXct
+bigTimeAgg$timeMinute <- as.POSIXct(bigTimeAgg$timeMinute, tz = "UTC")
+```
+
+And now we save the result to disk in a directory `data/artifacts`, which we first need to create:
+
+```{r bigTimeAggSave, eval=TRUE, echo=TRUE}
+# create "data/artifacts" to store results
+dir.create("data/artifacts", recursive = TRUE)
+# save aggregation to disk
+save(bigTimeAgg, file = "data/artifacts/bigTimeAgg.Rdata")
+```
+
+<div class="callout callout-danger"><strong>Note: </strong>It is a good practice to save objects that required some amount of computation to obtain so they are easier to use in the future.</div>
+
+Plot time series by host IP:
+
+```{r plotBigTimeAgg, eval=TRUE, echo=TRUE, fig.width=9, fig.height=7}
+xyplot(Freq ~ timeMinute | firstSeenDestIp, 
+   data = bigTimeAgg, 
+   layout = c(1, 4), as.table = TRUE, 
+   strip = FALSE, strip.left = TRUE, 
+   between = list(y = 0.25),
+   type = c("p", "g"))
+```
+
+There are three or four very obvious dramatic bursts of coordinated activity that clearly account for the majority of the traffic for these hosts.  The last host has an additional spike that is not shared with the others.  These look like a denial of service attacks.  We can look at things in more detail to confirm this and see what else we can learn.
+
+#### Investigating more closely
+
+Let's look at the time period when there were the most connections:
+
+```{r biggestTime, eval=TRUE, echo=TRUE}
+bigTimeAgg[which.max(bigTimeAgg$Freq),]
+```
+
+Now let's pull data in the corresponds to this IP address and time.  We can do this with the `drSubset()` command, which operates on "ddf" objects in a way similar to R's `subset()` command.
+
+```{r timeAggSub, eval=FALSE, echo=TRUE}
+# retrieve rows from netflow data with highest count
+busiest <- drSubset(nfRaw, 
+   (firstSeenDestIp == "172.30.0.4" | firstSeenSrcIp == "172.30.0.4") &
+   trunc(date, 0, units = "mins") == as.POSIXct("2013-04-11 12:55:00", tz = "UTC"), 
+   control = clc)
+# order by time
+busiest <- busiest[order(busiest$date),]
+save(busiest, file = "data/artifacts/busiest.Rdata")
+```
+
+Let's see how often each source IP shows up:
+
+```{r busiestTab, eval=TRUE, echo=TRUE}
+table(busiest$firstSeenSrcIp)
+```
+
+There are multiple IPs hitting this web server around 26k a minute, a total of 200K hits, about 3.33 per second.  Let's look at a plot:
+
+```{r busiestPlot, eval=TRUE, echo=TRUE, fig.width=9, fig.height=7, warning=FALSE}
+busiest$cumulative <- seq_len(nrow(busiest))
+xyplot(cumulative ~ date | firstSeenSrcIp, data = busiest, pch = ".",
+   xlab = "Time (seconds)",
+   ylab = "Cumulatuve Number of Connections",
+   between = list(x = 0.25, y = 0.25),
+   layout = c(3, 3),
+   type = c("p", "g"),
+   strip = FALSE, strip.left = TRUE
+)
+```
+
+This plot shows that the attack is mixed between IPs - it is not each IP individually in bursts, meaning that these hosts are working together to orchestrate this, making this a distributed denial of service (DDoS) attack.
+
+Note that 172.30.0.4 shows up prominently.  This is because `firstSeenSrcIp` does not necessarily mean source IP.  Let's look see what the corresponding ports for these records are:
+
+```{r busiestSrc, eval=TRUE, echo=TRUE}
+table(subset(busiest, firstSeenSrcIp == "172.30.0.4")$firstSeenSrcPort)
+```
+
+All are port 80, and it isn't typical for a connection to originate from port 80, so we conclude that `172.30.0.4` is really the destination in these cases.
+
+Let's check what ports the rest of the IPs are operating on:
+
+```{r busiestNotSrc, eval=TRUE, echo=TRUE}
+busiest2 <- busiest[busiest$firstSeenSrcIp != "172.30.0.4",]
+table(busiest2$firstSeenDestPort)
+```
+
+All are port 80.
+
+We can use this data to train and make some rules for detecting DDoS attacks.  This would require more study, but to start, it appears that rules would be based on how many times a group of IPs starts hitting a server in a small amount of time.  We would need to build and validate such a detection mechanism with the help of a domain expert.  For now, we are satisfied to know what happened and to incorprate this into our future analyses.
+
+```{r busiestPayload, eval=FALSE, echo=FALSE}
+table(busiest2$firstSeenSrcPayloadBytes)
+```
+
+#### Finding all the IPs involved
+
+We got some insight from looking at just one subset of data.  Now let's look at all the cases of extreme activity for these hosts and make sure we can explain it all.
+
+First, we will get the times all one-minute intervals where there were 10000 connections or more (the 10000 number based on our time series plots from above).
+
+```{r bigTimes, eval=TRUE, echo=TRUE}
+# get all times with more than 5000 hits in a minute
+bigTimes <- sort(unique(bigTimeAgg$timeMinute[bigTimeAgg$Freq > 10000]))
+```
+
+We can ensure that we got the right times by plotting them:
+
+```{r bigTimesPlot, eval=TRUE, echo=TRUE, fig.width=9, fig.height=7}
+xyplot(Freq ~ timeMinute | firstSeenDestIp, data = bigTimeAgg, 
+   layout = c(1, 4), 
+   strip = FALSE, strip.left = TRUE, 
+   as.table = TRUE, 
+   between = list(y = 0.25), 
+   groups = timeMinute %in% bigTimes)
+```
+
+Out of curiousity, how many records are we talking about?
+
+```{r bigTimeSum, eval=TRUE, echo=TRUE}
+sum(subset(bigTimeAgg, Freq > 10000)$Freq)
+```
+
+That's about 70% of our data.
+
+Now, let's tabulate the `firstSeenSrcIp` addresses that show up during these time periods individually for each of our host IPs, by each "event".  To categorize the events, we can use the day on which they occur as an indicator:
+
+```{r bigTimeDay, eval=TRUE, echo=TRUE}
+unique(format(bigTimes, "%d"))
+```
+
+Now we can tabulate by `firstSeenSrcIp` and the event day:
+
+```{r bigTimesHostAgg, eval=FALSE, echo=TRUE}
+bigTimesHostAgg <- drXtabs(~ firstSeenSrcIp + eventDay, by = "destIp_eventDay", 
+   data = nfRaw, 
+   transFn = function(x) {
+      x$timeMinute <- as.POSIXct(trunc(x$date, 0, units = "mins"))
+      x <- subset(x, firstSeenDestIp %in% bigIPs & timeMinute %in% bigTimes)
+      x$eventDay <- format(x$date, "%d")
+      x$destIp_eventDay <- paste(x$firstSeenDestIp, x$eventDay, sep = "_")         
+      x
+   }, 
+   control = clc)
+save(bigTimesHostAgg, file = "data/artifacts/bigTimesHostAgg.Rdata")
+```
+
+`bigTimesHostAgg` is now a list of tabulations by inside host and event.  Let's look at each of these tables where there were at least 100K records:
+
+```{r bigTimesHostAggPrint, eval=TRUE, echo=TRUE}
+
+tmp <- do.call(rbind, lapply(seq_along(bigTimesHostAgg), function(i) {
+   bigTimesHostAgg[[i]]$id  <- names(bigTimesHostAgg)[i]
+   bigTimesHostAgg[[i]]
+}))
+
+tmp <- groupQuantile(tmp, "id")
+
+tmp$destIp <- sapply(strsplit(tmp$id, "_"), "[", 1)
+tmp$eventDay <- sapply(strsplit(tmp$id, "_"), "[", 2)
+
+xyplot(log10(Freq + 1) ~ p | destIp * eventDay, data = tmp, subset = p > 0.9, as.table = TRUE, between = list(x = 0.25, y = 0.25), type = c("p", "g"))
+
+length(unique(tmp$firstSeenSrcIp[tmp$Freq > 10000]))
+length(unique(tmp$firstSeenSrcIp))
+
+sum(tmp$Freq[tmp$Freq > 10000])
+
+tmp2 <- subset(tmp, Freq > 10000)
+
+tmp3 <- xtabs(Freq ~ firstSeenSrcIp + eventDay, data = tmp2)
+tmp3 <- xtabs(Freq ~ eventDay + firstSeenSrcIp, data = tmp2)
+
+head(subset(freqMerge, !value %in% tmp2$firstSeenSrcIp))
+
+plot(tmp3)
+
+lapply(bigTimesHostAgg, function(x) x[x$Freq > 10000,])
+
+
+```
+
+What is interesting here is that for each of our four web servers, the list of IPs attacking any one of them is pretty much independent from the others, except for the case of `10.170.32.110`, which shows up in the first two.
+
+Let's see where these external IP addresses show up in our source IP frequency tabulation:
+
+```{r badIPs, eval=TRUE, echo=TRUE}
+# get all IPs involved in the DDoS
+badIPs <- unique(do.call(c, lapply(bigTimesHostAgg, 
+   function(x) x$firstSeenSrcIp[x$Freq > 10000])))
+save(badIPs, file = "data/artifacts/badIPs.Rdata")
+
+# do these match with the large values in srcIpFreq for "External"?
+srcIpFreq <- srcIpFreq[order(srcIpFreq$Freq, decreasing = TRUE),]
+srcIpFreq$bad <- srcIpFreq$value %in% badIPs
+head(subset(srcIpFreq, type == "External"), 50)
+```
+
+It turns out that all of the 40 most frequent external hosts are these DDoS attackers.  After accounting for them, the remaining external hosts have orders of magnitude smaller activity.
+
+We will want to ignore these records in the future as they bloat the data set and we now understand them.  Let's make sure that removing them takes care of the problem by redoing the time aggregation:
+
+```{r timeAgg, eval=FALSE, echo=TRUE}
+timeAgg <- drXtabs(~ timeMinute + firstSeenDestIp, data = nfRaw, 
+   transFn = function(x) {
+      x$timeMinute <- as.POSIXct(trunc(x$date, 0, units = "mins"))
+      subset(x, firstSeenDestIp %in% bigIPs &
+         !(timeMinute %in% bigTimes & 
+         firstSeenSrcIp %in% c(bigIPs, badIPs) & 
+         firstSeenDestIp %in% c(bigIPs, badIPs)))
+   }, control = clc)
+timeAgg <- timeAgg[order(timeAgg$timeMinute),]
+timeAgg$timeMinute <- as.POSIXct(timeAgg$timeMinute, tz = "UTC")
+save(timeAgg, file = "data/artifacts/timeAgg.Rdata")
+```
+
+Similar plot as before:
+
+```{r timeAggPlot, eval=TRUE, echo=TRUE, fig.width=9, fig.height=7}
+xyplot(log10(Freq + 1) ~ timeMinute | firstSeenDestIp, 
+   data = timeAgg, 
+   layout = c(1, 4), as.table = TRUE, 
+   strip = FALSE, strip.left = TRUE, 
+   between = list(y = 0.25),
+   type = c("p", "g"))
+```
+
+This looks good.  When we do our host divisions, we will take this into account.
+
+### Source/Dest IP Payload ###
+
+To go beyond the precomputed frequency tables provided by the summary statistics of `nfRaw`, let's compute the distribution of the connection payloads for each host.
+
+```{r srcIpXtabs, eval=FALSE, echo=TRUE}
+srcIpByte <- drXtabs(firstSeenSrcPayloadBytes ~ firstSeenSrcIp, 
+   data = nfRaw, control = clc)
+# merge in hostList
+srcIpByte <- mergeHostList(srcIpByte, "firstSeenSrcIp")
+save(srcIpByte, file = "data/artifacts/srcIpByte.Rdata")
+```
+
+Let's see what this looks like:
+
+```{r srcIpXtabsHead, eval=TRUE, echo=TRUE}
+head(srcIpByte)
+```
+
+The top 5 are sending nearly 2 orders of magnitude higher bytes than the 6th.
+
+```{r eval=FALSE, echo=FALSE, purl=FALSE}
+# look at things in order of IP - some interesting groupings...
+xyplot(log10(Freq) ~ as.integer(factor(firstSeenSrcIp)), 
+   data = srcIpByte, groups = type, auto.key = TRUE)
+```
+
+We can make quantile plots of bytes per type as before:
+
+```{r eval=TRUE, echo=TRUE, fig.width=9, fig.height=5}
+srcIpByteQuant <- groupQuantile(srcIpByte, "type")
+# quantile plot by host type
+xyplot(log10(Freq) ~ p | type, data = srcIpByteQuant, layout = c(7, 1))
+```
+
+This looks similar to the ones we saw for counts.  Not extremely exciting.
+
+But now let's focus a bit more on the distribution for workstations.
+
+```{r eval=TRUE, echo=TRUE, fig.width=9, fig.height=5}
+# look at distribution for workstations only
+wFreq <- log2(subset(srcIpByteQuant, type == "Workstation")$Freq)
+histogram(~ wFreq, breaks = 100, col = "darkgray", border = "white")
+```
+
+It appears that there is a "point mass" at the tail
+
+```{r eval=TRUE, echo=TRUE}
+subset(srcIpByteQuant, Freq > 2^20 & type == "Workstation")
+```
+
+We should keep these IPs in mind in our later analyses.  For now, let's remove the point mass and look at the histogram again:
+
+```{r eval=TRUE, echo=TRUE, fig.width=9, fig.height=5}
+histogram(~ wFreq[wFreq < 20], breaks = 30, col = "darkgray", border = "white")
+```
+
+```{r eval=FALSE, echo=FALSE, purl=FALSE}
+{
+library(ed)
+e <- edRawEstimate(wFreq[wFreq < 20], k = 5)
+plot(e)
+abline(v = breakPoints)
+}
+```
+
+This data looks like a mixture of normals.  We will try to fit them with the `mixtools` library:
+
+```{r name, eval=TRUE, echo=FALSE}
+set.seed(1234)
+```
+
+```{r eval=TRUE, echo=TRUE, message=FALSE, fig.width=9, fig.height=5}
+library(mixtools)
+mixmdl <- normalmixEM(wFreq[wFreq < 20], mu = c(16.78, 17.54, 18.2))
+plot(mixmdl, which = 2, main2 = "", breaks = 50)
+breakPoints <- c(17.2, 17.87)
+abline(v = breakPoints)
+```
+
+```{r eval=FALSE, echo=FALSE, purl=FALSE}
+mixmdl$lambda
+# 70% from first distribution, 25% from second, 5% from third
+2^mixmdl$mu
+mixmdl$sigma
+```
+
+The `breakPoints` do a pretty good job of separating the distributions.  Let's use those breakpoints to categorize Workstations and look at how these categories behave within IP subnets.
+
+```{r eval=TRUE, echo=TRUE}
+# categorize IPs
+srcIpByte$byteCat <- cut(log2(srcIpByte$Freq), 
+   breaks = c(0, breakPoints, 100), labels = c("low", "mid", "high"))
+
+# create CIDR for subnets
+srcIpByte$cidr24 <- ip2cidr(srcIpByte$firstSeenSrcIp, 24)
+
+# tabulate by CIDR and category
+cidrCatTab <- xtabs(~ cidr24 + byteCat, data = subset(srcIpByte, type == "Workstation"))
+cidrCatTab
+```
+
+We can look at this table with a mosaic plot:
+
+```{r eval=TRUE, echo=TRUE, fig.width=8, fig.height=6}
+# mosaic plot
+plot(cidrCatTab, color = tableau10[1:3], border = FALSE, main = NA)
+```
+
+The categorization is clearly different within each subnet.  `170.30.1.0/24` has the highest "high" category.
+
+Here's another way to look at it:
+
+```{r eval=TRUE, echo=TRUE, fig.width=9, fig.height=6}
+srcByteQuant <- groupQuantile(
+   subset(srcIpByte, type == "Workstation" & Freq < 2^20), "cidr24")
+
+xyplot(log2(Freq) ~ p | cidr24, data = srcByteQuant,
+   panel = function(x, y, ...) {
+      panel.xyplot(x, y, ...)
+      panel.abline(h = breakPoints, lty = 2, col = "darkgray")
+   },
+   between = list(x = 0.25),
+   layout = c(6, 1)
+)
+```
+
+`170.30.1.0/24` is essentially the only category with the upper group.
+
+We can use these categorizations as an additional characteristic of our workstation hosts...
+
+### Inside to Inside ###
+
+It will be useful to understand if there any connections where an inside host is talking to an inside host.  Based on what we think we know about the collection procedure, this should not be possible.  But it's always good to check with the data.
+
+We can do this with `drXtabs()`, but we want to tabulate by `"inside"->"outside"`, `"outside"->"inside"`, etc.  These variables do not exist in the data, but we can create them using the `transFn` argument.  We will create new variables `srcCat` and `destCat` that are set to `"inside"` if the IP begins with 172, and outside otherwise.
+
+```{r srcDestInsideTab, eval=FALSE, echo=TRUE}
+# see if there are any inside-inside connections
+srcDestInsideTab <- drXtabs(~ srcCat + destCat, data = nfRaw, 
+   transFn = function(x) {
+      x$srcCat <- "outside"
+      x$srcCat[grepl("^172", x$firstSeenSrcIp)] <- "inside"
+      x$destCat <- "outside"
+      x$destCat[grepl("^172", x$firstSeenDestIp)] <- "inside"
+      x
+   }, control = clc)
+save(srcDestInsideTab, file = "data/artifacts/srcDestInsideTab.Rdata")
+```
+
+```{r printSrcDestInside, eval=TRUE, echo=TRUE}
+srcDestInsideTab
+```
+
+There are 20279 `"inside"->"inside"` connections.  This should not be.  Let's take a closer look.
+
+```{r eval=FALSE, echo=FALSE, purl=FALSE}
+{
+   any(srcIpFreq$value %in% hostList$externalIP)
+   any(destIpFreq$value %in% hostList$externalIP)
+   otherIPs <- hostList$IP[hostList$type == "Other 172.*"]
+   subset(srcIpFreq, value %in% otherIPs)
+   table(in2in$firstSeenSrcIp[in2in$firstSeenSrcIp %in% otherIPs])
+   subset(destIpFreq, value %in% otherIPs)
+   table(in2in$firstSeenDestIp[in2in$firstSeenDestIp %in% otherIPs])
+}
+```
+
+20K records is not a large amount, so we can pull all the data that contain `"inside"->"inside"` connections.  This can be done with a simple `recombine()` operation.  Recombination is simply the specification of a function to `apply` to each subset, followed by a `combine` strategy.  Here, we want to apply a function to each subset that only returns `"inside"->"inside"` connections.  Then we want to rbind the results using `combRbind()`, which takes the results from each computation and binds them into a single data frame for analysis in our local session.
+
+```{r in2in, eval=FALSE, echo=TRUE}
+# get a data frame of all inside to inside connections
+in2in <- recombine(nfRaw, 
+   apply = function(x) {
+      srcIn <- grepl("^172", x$firstSeenSrcIp)
+      destIn <- grepl("^172", x$firstSeenDestIp)
+      x[srcIn & destIn,]
+   }, 
+   combine = combRbind(), control = clc)
+save(in2in, file = "data/artifacts/in2in.Rdata")
+```
+
+<div class="callout callout-danger"><strong>Note: </strong>Here our recombintion resulted in a data set small enough to handle easily in our local environment.  This is a common paradigm for Divide and Recombine -- we strive to be handling smaller data sets in our local R environment as often as possible that are artifacts of the analysis of the big data.</div>
+
+Let's look at a few of these:
+
+```{r in2in2, eval=TRUE, echo=TRUE}
+in2in[1:10, 1:5]
+```
+
+We notice that each of the first 10 records contain at least one of the special IP addresses we saw before.  Do all records contain one of these addresses?
+
+```{r in2inOther, eval=TRUE, echo=TRUE}
+otherIPs <- subset(hostList, type == "Other 172.*")$IP
+ind <- which(!(
+   in2in$firstSeenSrcIp %in% otherIPs | 
+   in2in$firstSeenDestIp %in% otherIPs))
+ind
+```
+
+There is one that does not:
+
+```{r eval=TRUE, echo=TRUE}
+in2in[ind,1:5]
+```
+
+It contains 2 real inside hosts...  What are these?
+
+```{r eval=TRUE, echo=TRUE}
+subset(hostList, IP %in% c("172.30.0.3", "172.30.1.94"))
+```
+
+Mail and workstation - how did this record get in there?
+
+### Connection Duration ###
+
+Another very useful division-agnostic method we can apply to our data is `quantile()`.  Here we are interested in the overall distribution of connection duration, and we can get approximate quantiles with the following:
+
+```{r durQuant, eval=FALSE, echo=TRUE}
+dsq <- quantile(nfRaw, var = "durationSeconds", control = clc)
+save(dsq, file = "data/artifacts/dsq.Rdata")
+```
+
+Plot it...
+
+```{r eval=TRUE, echo=TRUE, fig.width=8, fig.height=5}
+xyplot(log2(q + 1) ~ fval * 100, data = dsq, type = "p",
+   xlab = "Percentile",
+   ylab = "log2(duration + 1) (seconds)",
+   panel = function(x, y, ...) {
+      panel.grid(h=-1, v = FALSE)
+      panel.abline(v = seq(0, 100, by = 10), col = "#e6e6e6")
+      panel.xyplot(x, y, ...)
+      panel.abline(h = log2(1801), lty = 2)
+   }
+)
+```
+
+- Seconds is "discrete"
+- 20% of connections have zero duration (but zero may be rounded down)
+- Max duration is 1800 seconds.
+
+TODO: duration (0, >0) vs. packet count
+
+TODO: hexbin of duration vs. packet count
+
+TODO: duration distribution by TCP/UDP
+
+Now let's look at duration by source type and destination type.  
+
+#### Duration disbribution by source type
+
+```{r durSrcQuantType, eval=FALSE, echo=TRUE}
+dsqSrcType <- quantile(nfRaw, var = "durationSeconds", by = "type", control = clc,
+   preTransFn = function(x) {
+      mergeHostList(x[,c("firstSeenSrcIp", "durationSeconds")], "firstSeenSrcIp")
+   },
+   params = list(mergeHostList = mergeHostList, hostList = hostList)
+)
+save(dsqSrcType, file = "data/artifacts/dsqSrcType.Rdata")
+```
+
+Plot the quantiles...
+
+```{r eval=TRUE, echo=TRUE, fig.width=10, fig.height=5}
+xyplot(log2(q + 1) ~ fval * 100 | group, data = dsqSrcType, type = "p",
+   xlab = "Percentile",
+   ylab = "log2(duration + 1)",
+   panel = function(x, y, ...) {
+      panel.abline(v = seq(0, 100, by = 10), col = "#e6e6e6")
+      panel.xyplot(x, y, ...)
+      panel.abline(h = log2(1801), lty = 2)
+   },
+   layout = c(7, 1)
+)
+```
+
+#### Duration disbribution by destination type
+
+Same as before...
+
+```{r durDestQuantType, eval=FALSE, echo=TRUE}
+dsqDestType <- quantile(nfRaw, var = "durationSeconds", by = "type", control = clc,
+   preTransFn = function(x) {
+      mergeHostList(x[,c("firstSeenDestIp", "durationSeconds")], "firstSeenDestIp")
+   },
+   params = list(mergeHostList = mergeHostList, hostList = hostList)
+)
+save(dsqDestType, file = "data/artifacts/dsqDestType.Rdata")
+```
+
+Plot quantiles overlaid with source quantiles
+
+```{r eval=TRUE, echo=TRUE, fig.width=10, fig.height=6}
+dsqType <- make.groups(source = dsqSrcType, dest = dsqDestType)
+xyplot(log2(q + 1) ~ fval * 100 | group, groups = which, data = dsqType, type = "p",
+   xlab = "Percentile",
+   ylab = "log2(duration + 1)",
+   panel = function(x, y, ...) {
+      panel.abline(v = seq(0, 100, by = 10), col = "#e6e6e6")
+      panel.xyplot(x, y, ...)
+      panel.abline(h = log2(1801), lty = 2)
+   },
+   layout = c(8, 1),
+   auto.key = TRUE
+)
+```
+
+Observations...
+
+```{r eval=FALSE, echo=FALSE, purl=FALSE}
+{
+   a <- 1
+}
+```
+
+### Top Ports ###
+
+```{r eval=FALSE, echo=FALSE, purl=FALSE}
+{
+srcPortTab <- drXtabs(~ firstSeenSrcPort, data = nfRaw, control = clc)
+save(srcPortTab)
+nrow(srcPortTab)
+head(srcPortTab)
+plot(log10(srcPortTab$Freq))
+destPortTab <- drXtabs(~ firstSeenDestPort, data = nfRaw, control = clc)
+nrow(destPortTab)
+head(destPortTab)
+plot(log10(destPortTab$Freq))
+}
+```
+
+How does duration behavior vary by port?
+
+Get top 10 ports...
+
+```{r eval=TRUE, echo=TRUE}
+topPorts <- as.integer(names(commonPortList))
+```
+
+#### Quantiles of duration by port
+
+Provide `preTransFn` to subset to only the ports of interest
+
+```{r durQuantPort, eval=FALSE, echo=TRUE}
+dsqPort <- quantile(nfRaw, var = "durationSeconds", by = "port", control = clc,
+   preTransFn = function(x) {
+      srcInd <- which(x$firstSeenSrcPort %in% topPorts)
+      destInd <- which(x$firstSeenDestPort %in% topPorts)
+      data.frame(
+         durationSeconds = c(x$durationSeconds[srcInd], x$durationSeconds[destInd]),
+         port = c(x$firstSeenSrcPort[srcInd], x$firstSeenDestPort[destInd])
+      )
+   }
+)
+save(dsqPort, file = "data/artifacts/dsqPort.Rdata")
+```
+
+Plot of duration distribution by top 10 ports...
+
+```{r eval=TRUE, echo=TRUE, fig.width=8, fig.height=5}
+dsqPort$group <- factor(dsqPort$group)
+nms <- sapply(commonPortList[levels(dsqPort$group)], function(x) x$name)
+levels(dsqPort$group) <- paste(levels(dsqPort$group), nms)
+xyplot(log2(q + 1) ~ fval * 100 | group, data = dsqPort,
+   xlab = "Percentile",
+   ylab = "log2(duration + 1)",
+   panel = function(x, y, ...) {
+      panel.xyplot(x, y, ...)
+      panel.abline(h = log2(1801), lty = 2)
+   },
+   type = c("p", "g"),
+   between = list(x = 0.25, y = 0.25),
+   layout = c(5, 2)
+)
+```
+
+Observations...
+
+```{r eval=TRUE, echo=FALSE, message=FALSE, purl=FALSE}
+stopCluster(cl)
+```
+
+
+```{r eval=FALSE, echo=FALSE, purl=FALSE}
+{
+### get just rdp
+
+# how many have rdp?
+unlist(as.list(drLapply(nfByHost, function(x) any(x$firstSeenSrcPort == "3389" | x$firstSeenDestPort == "3389"), control = clc))
+
+rdp <- recombine(nfRaw, function(x) subset(x, firstSeenSrcPort == "3389" | firstSeenDestPort == "3389"), combine = combRbind(), control = clc)
+
+nrow(rdp)
+# 361878
+# network is getting 361878 / 10080 = 36 rdp per minute
+
+nrow(rdp[rdp$firstSeenSrcPayloadBytes > 0 | rdp$firstSeenDestPayloadBytes > 0,])
+# only 112 with positive payload
+
+rdp2 <- rdp[rdp$firstSeenSrcPayloadBytes > 0 | rdp$firstSeenDestPayloadBytes > 0,]
+
+rdp3 <- rdp2[grepl("^172", rdp2$firstSeenDestIp) & rdp2$firstSeenDestPort == 3389,]
+# these are all 6 seconds long, 11 source and dest payload bytes
+
+rdp3 <- rdp3[order(rdp3$date),]
+
+plot(sort(rdp3$date))
+
+table(rdp3$durationSeconds)
+
+dotplot(firstSeenSrcIp ~ date, data = rdp3)
+
+table(rdp3$firstSeenSrcIp)
+
+table(rdp2$firstSeenDestPort)
+table(rdp2$firstSeenSrcPort)
+
+
+
+rdp4 <- rdp2[!(grepl("^172", rdp2$firstSeenDestIp) & rdp2$firstSeenDestPort == 3389),]
+
+tmp <- as.list(drLapply(rdp, nrow))
+
+
+
+
+panel.abline(h = log2p1at, col = "#e6e6e6")
+scales = list(y = log2p1scales),
+   
+############################################################################
+### extra stuff...
+############################################################################
+
+freqTotQuant <- groupQuantile(freqMerge, "type", "tot")
+xyplot(log10(tot) ~ p | type, data = freqTotQuant, layout = c(7, 1))
+
+max(freqMerge$tot[freqMerge$type == "Workstation"], na.rm = TRUE)
+# 29K is biggest...
+max(freqMerge$tot[freqMerge$type == "Other 172.*"], na.rm = TRUE)
+# 5K is biggest
+
+max(freqMerge$tot[freqMerge$type == "External"], na.rm = TRUE)
+# 1.3 million
+
+max(freqMerge$tot[freqMerge$type == "HTTP"], na.rm = TRUE)
+# 8 million!
+
+# these guys need their own special attention
+freqMerge <- freqMerge[order(freqMerge$tot),]
+bigIPs <- tail(freqMerge, 4)$value
+
+sum(tail(freqMerge, 4)$tot)
+# 21 million
+
+# so if we leave everything external out
+# and get rid of these 4, what do we get?
+freqMergeSub <- subset(freqMerge, ! value %in% bigIPs & type != "External")
+max(freqMergeSub$tot)
+# biggest is 75K
+
+# destIpByte <- drXtabs(firstSeenDestPayloadBytes ~ firstSeenDestIp, data = nfRaw, control = clc)
+
+
+
+
+
+
+
+
+wFreq <- log2(subset(srcIpFreqQuant, type == "Workstation")$Freq)
+histogram(~ wFreq, breaks = 100, col = "darkgray", border = "white")
+
+# there is a point mass at the tail
+subset(srcIpFreqQuant, Freq > 2^12 & type == "Workstation")
+# need to check these out
+
+# remove the point mass
+histogram(~ wFreq[wFreq < 12], breaks = 30, col = "darkgray", border = "white")
+
+breakPoints <- c(17.2, 17.87)
+
+# library(ed)
+# e <- edRawEstimate(wFreq[wFreq < 12], k = 5)
+# plot(e)
+# abline(v = breakPoints)
+
+library(mixtools)
+mixmdl <- normalmixEM(wFreq[wFreq < 12], mu = c(9.5, 10.1, 10.8))
+plot(mixmdl, which = 2, main2 = "", breaks = 40)
+abline(v = breakPoints)
+
+mixmdl$lambda
+# 70% from first distribution, 25% from second, 5% from third
+2^mixmdl$mu
+mixmdl$sigma
+
+srcIpFreq$byteCat <- cut(log2(srcIpByte$Freq), breaks = c(0, breakPoints, 100), labels = c("low", "mid", "high"))
+
+# ipSplit <- strsplit(srcIpByte$firstSeenSrcIp, "\\.")
+# sapply(ipSplit, function(x) {
+#    paste(c(x[1:3], "0/24"), collapse = ".")
+# })
+srcIpByte$cidr24 <- ip2cidr(srcIpByte$firstSeenSrcIp, 24)
+
+cidrCatTab <- xtabs(~ cidr24 + byteCat, data = subset(srcIpByte, type == "Workstation"))
+cidrCatTab
+# mosaic plot
+plot(cidrCatTab, color = tableau10[1:3], border = FALSE)
+
+# 170.30.1.0/24 has the highest "high" category
+
+a <- groupQuantile(subset(srcIpByte, type == "Workstation"), "cidr24")
+xyplot(log2(Freq) ~ p | cidr24, data = a)
+
+a <- groupQuantile(subset(srcIpByte, type == "Workstation" & Freq < 2^20), "cidr24")
+xyplot(log2(Freq) ~ p | cidr24, data = a,
+   panel = function(x, y, ...) {
+      panel.xyplot(x, y, ...)
+      panel.abline(h = breakPoints, lty = 2, col = "darkgray")
+   },
+   between = list(x = 0.25),
+   layout = c(6, 1)
+)
+}
+```
+
+
+

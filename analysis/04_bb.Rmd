@@ -1,0 +1,125 @@
+```
+
+```{r eval=TRUE, echo=FALSE, message=FALSE, purl=FALSE}
+{
+   options(width = 90)
+   Sys.setenv(TZ = "UTC")
+   library(datadr)
+   library(trelliscope)
+   library(cyberTools)
+   setwd("~/Documents/Code/vastChallenge")
+   cl <- makeCluster(8)
+   clc <- localDiskControl(cluster = cl)
+   bbRaw <- ddf(localDiskConn("data/bbRaw"))
+   bbByHost <- ddo(localDiskConn("data/bbByHost"))
+   nfBbByHost <- ddo(localDiskConn("data/nfBbByHost"))
+}
+```
+
+## Network Health Data ##
+
+### BB Exploration ###
+
+Load the data and look at a subset...
+
+```{r nhDataLoad, eval=TRUE, echo=TRUE, message=FALSE}
+bbRaw <- ddf(localDiskConn("data/bbRaw"))
+head(bbRaw[[1]][[2]][,-5])
+```
+
+...
+
+### BB By Host Division ###
+
+It turns out this data does not contain actual IPs, but instead the `hostname`, which is available in `hostList` which we can use to map to an IP address.  
+
+```{r hostFreq, eval=TRUE, echo=TRUE}
+bbHostFreq <- summary(bbRaw)$hostname$freqTable
+head(bbHostFreq)
+```
+
+```{r eval=FALSE, echo=FALSE, purl=FALSE}
+{
+   tmp <- merge(bbHostFreq, hostList, by.x = "value", by.y = "hostName", all.x = TRUE)
+   subset(tmp, is.na(tmp$IP))
+   tmp <- tmp[order(tmp$Freq),]
+   xyplot(Freq ~ 1:nrow(tmp), data = tmp, groups = type, auto.key = TRUE)
+}
+```
+
+So to divide the data by host in a way that is similar to our netflow division, we need to first merge the `hostList` to get the actual IP.
+
+Also note that there is some redundancy in columns.  For a given record, for example, if `connMade` is specified, then several of the preceding columns are always `NA`.  We can basically break the grouping of reported fields down into the following list:
+
+```{r fields, eval=TRUE, echo=TRUE}
+fields <- list(
+   list(name = "disk", fields = "diskUsagePercent"),
+   list(name = "page", fields = "pageFileUsagePercent"),
+   list(name = "proc", fields = c("numProcs", "loadAveragePercent", "physicalMemoryUsagePercent")),
+   list(name = "connMade", fields = "connMade")
+)
+```
+
+We also want to exclude the big IPs like we did for netflow.  
+
+Here we apply a `preTransFn` to merge in `hostList`, and a `postTransFn` to be applied to the final groupings to get things into a per-field format for simpler structure and smaller data size.
+
+```{r bbByHost, eval=FALSE, echo=TRUE}
+bigIPs <- c("172.20.0.15", "172.20.0.4", "172.10.0.4", "172.30.0.4")
+
+bbByHost <- divide(bbRaw, by = "hostIP",
+   preTransFn = function(x) {
+      x <- merge(x, hostList, by.x = "hostname", by.y = "hostName", all.x = TRUE)
+      x <- subset(x, !x$IP %in% bigIPs)
+      names(x)[names(x) == "IP"] <- "hostIP"
+      x
+   },
+   postTransFn = function(x) {
+      x <- x[order(x$time),]
+      res <- list()
+      for(fld in fields) {
+         ind <- which(!is.na(x[[fld$fields[1]]]))
+         if(length(ind) > 0) {
+            nms <- c("receivedfrom", "time", fld$fields)
+            res[[fld$name]] <- x[ind, nms]
+         }
+      }
+      res
+   },
+   output = localDiskConn("data/bbByHost"),
+   control = clc
+)
+bbByHost <- updateAttributes(bbByHost, control = clc)
+```
+
+Lots more to look at here...
+
+Here's an example of accessing and plotting data for a subset:
+
+
+```{r name, eval=TRUE, echo=TRUE, fig.width=8, fig.height=3.5}
+d <- bbByHost[[11]][[2]]
+xyplot(connMade ~ time, data = d$conn)
+xyplot(numProcs ~ time, data = d$proc)
+xyplot(physicalMemoryUsagePercent ~ time, data = d$proc)
+xyplot(loadAveragePercent ~ time, data = d$proc)
+xyplot(diskUsagePercent ~ time, data = d$disk)
+xyplot(pageFileUsagePercent ~ time, data = d$page)
+```
+
+### Joining with NetFlow ###
+
+```{r join, eval=FALSE, echo=TRUE}
+nfBbByHost <- drJoin(bb = bbByHost, nf = nfByHost, 
+   output = localDiskConn("data/nfBbByHost"), control = clc)
+```
+
+Now we have a distributed data object where each subset is a list of netflow and network health data for one host
+
+```{r joinEx, eval=TRUE, echo=TRUE}
+str(nfBbByHost[[1]][[2]])
+```
+
+Now we can use this info in per-host analyses and vis...
+
+

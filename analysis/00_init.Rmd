@@ -1,0 +1,141 @@
+```
+
+```{r eval=TRUE, echo=FALSE, purl=FALSE}
+options(width = 90)
+```
+
+# VAST Challenge with datadr and Trelliscope #
+
+## Getting Set Up ##
+
+### Introduction ###
+
+[datadr-gh]: https://github.com/hafen/datadr "datadr github page"
+[trelliscope-gh]: https://github.com/hafen/trelliscope "trelliscope github page"
+[datadr-tut]: http://hafen.github.io/datadr "datadr tutorial"
+[trelliscope-tut]: http://hafen.github.io/trelliscope "trelliscope tutorial"
+
+[vast-challenge]: http://vacommunity.org/VAST+Challenge+2013%3A+Mini-Challenge+3
+
+[netflow-wik]: http://en.wikipedia.org/wiki/NetFlow
+[IP-wik]: http://en.wikipedia.org/wiki/Internet_protocol_suite
+[TCP-wik]: http://en.wikipedia.org/wiki/Transmission_Control_Protocol
+[UDP-wik]: http://en.wikipedia.org/wiki/User_Datagram_Protocol
+
+The goal of this tutorial is to provide useful examples of how to use [datadr][datadr-gh] and [Trelliscope][trelliscope-gh] as a supplement to the introductory tutorials provided [here][datadr-tut] and [here][trelliscope-tut], which focus more on illustrating functionality than doing something useful with data.  It is based around the [2013 VAST Mini-Challenge 3 dataset][vast-challenge].
+
+<div class="callout callout-danger"><strong>Note: </strong>This tutorial is an evolving document.  Some sections may be less filled out than others.  Expect changes and updates.  Also note that serious analysis of data requires a great deal of investigation and currently this document only provides examples that will get you started down the path.  Please send any comments or report issues to <a href="mailto:ryan.hafen@pnnl.gov">ryan.hafen@pnnl.gov</a>.</div>
+
+#### Data sources
+
+The data available for download on the [VAST challenge][vast-challenge] page provides files that contain Network Flow (netflow), Network Health, and Intrusion Protection System data.  Documentation that describes these data, as well as a diagram of the network, is available here:
+
+- [Netflow and network health](docs/data/NetFlow_NetworkHealth.pdf)
+- [Intrusion protection system](docs/data/IPS.pdf)
+- [Network Diagram](docs/data/NetworkArhictecture.pdf)
+
+[Netflow][netflow-wik] data provides summaries of connections between computers on a network.  For example, if you visit a web page, you initiate a connection between your computer and a web server.  The connection is identified by the IP address of your computer and the network port from which it originated, as well as the IP address and network port of the machine it is connecting to.  In the course of a connection, packets containing data are sent back and forth.  A netflow record provides a summary of the connection, including the source and destination information we just discussed, as well as the total number of packets sent/received, total bytes sent/received, [internet protocol][IP-wik] used (the two most common are [TCP][TCP-wik] and [UDP][UDP-wik]), etc.
+
+The other types of data are a bit more self-explanatory.  The IPS data is simply a log of suspicious network activity.  The network health data is a record of statistics of machines polled at some time interval to provide information such as the amount of memory or CPU usage.
+
+We will get more familiar with the data as we begin to explore it, and endeavor to provide descriptions for aspects of the data that may be difficult to understand to someone who has not worked with this type of data before.
+
+#### Analysis goals
+
+According to the VAST Challenge website:
+
+> Your job is to understand events taking place on your networks over a two week period. To support your mission, your choice of visual analytics should support near real-time situation awareness. In other words, as network manager, your goal for your department is to notice network events as quickly as possible.
+
+We are asked to provide a timeline of notable events and to speculate on narratives that describe the events on the network.
+
+Keeping those goals in mind, we will address a more general goal of simply trying to get an understanding of the data through exploratory analysis, making heavy use of visualization throughout, and highlighting the use of datadr and Trelliscope.  
+
+<!-- After getting an understanding of the data, we will attempt to try to statistically model some of the behaviors that we see and look for behavior that is atypical according to these models. -->
+
+<div class="callout callout-danger"><strong>Note: </strong>Keep in mind that this data is synthetically generated.  There are some limitations to treating this like a "real" analysis of data.  One limitation is that the data was synthetically generated - something we must accept because otherwise it would be very difficult provide publicly-available sources of these modalities of network sensor data.  Another limitation is that in a real analysis scenario, we would ideally have domain experts very familiar with the network helping us understand the things we are seeing in the data and helping the evolution of the analytical process.</div>
+
+<!-- #### Analysis paradigm -->
+
+#### "Prerequisites"
+
+It is assumed that the reader is familiar with the R programming language.  If not, there are several references, including:
+
+- [R for Beginners](http://cran.r-project.org/doc/contrib/Paradis-rdebuts_en.pdf).
+
+Some familiarity with datadr and Trelliscope is also a plus.  It is recommended to spend some time visiting these tutorials:
+
+- [datadr][datadr-tut]
+- [Trelliscope][trelliscope-tut]
+
+Everything in this demonstration is done from the R console.  Since the data is not very large, we will mainly use R's multicore capabilities for parallel processing and local disk for storage, although a more scalable backend such as Hadoop could be used simply by replacing calls to `localDiskConn()` with `hdfsConn()`.  Using multicore mode lowers the barrier to entry, since building and configuring a Hadoop cluster is not a casual endeavor.
+
+<div class="callout callout-danger"><strong>Note: </strong>This data is not that large - about 6 GB uncompressed.  There are other tools in R that can handle this size of data, or some systems could handle it in memory.  But imagine now that there are many more hosts, a much longer time period, etc.  The size of computer network sensor data is typically much much larger than this, in the terabyte and beyond scale, and these tools scale to tackle these problems.  Also, regardless of size, the analysis paradigm these tools provide is useful for any size of data.</div>
+
+### Environment setup ###
+
+To follow along in this tutorial, you simply need to have [R](http://cran.r-project.org) installed along with the `datadr` and `trelliscope` packages.  To get these packages, we can install them from github using the `devtools` package by entering the following commands at the R command prompt:
+
+```{r eval=FALSE}
+install.packages("devtools")
+library(devtools)
+install_github("datadr", "hafen")
+install_github("trelliscope", "hafen")
+```
+
+<!-- such as converting IP addresses to [CIDRs](http://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing) -->
+
+Additionally, we have packaged together some helper functions and data sets particular to this data, which can be installed with:
+
+```{r eval=FALSE}
+install_github("vastChallenge", "hafen", subdir = "package")
+```
+
+The following section will cover how to set up the raw data download to get going.  You can replicate every step of this tutorial on your own, and are encouraged to do so and to be creative and explore your own analyses.  For convenience, all of the code in the tutorial is provided as `.R` source files [here](#r-code).
+
+### File Setup ###
+
+We will organize all of the data and analysis code into a project directory.  For us, this directory is located at `~/Documents/Code/vastChallenge`.  Choose an appropriate directory for your project and then set that as the working directory in R:
+
+```{r eval=TRUE, echo=TRUE, purl=FALSE}
+setwd("~/Documents/Code/vastChallenge")
+```
+
+Inside this directory we will create a directory for our raw data.
+
+```{r eval = FALSE}
+# create directory for raw text data
+dir.create("data/raw", recursive = TRUE)
+```
+
+Now we need the raw data to put in it.  The raw data can be obtained by following download link from [this page](http://vacommunity.org/VAST+Challenge+2013%3A+Mini-Challenge+3).  Here we are only looking at "Week 2" data.
+
+Unzip the files and move the csv files to the directory `data/raw`.
+
+Aside from the larger csv files, there are other files, including pdf files of data descriptions and a small text file describing the hosts, `BigMktNetwork.txt`.  We have already parsed this file and its contents are available as a data set called `hostList` in the `cyberTools` R package installed previously.
+
+At this point, we should have the following files in our project directory:
+
+```{r eval=TRUE, echo=FALSE, purl=FALSE}
+ff <- list.files("data/raw", recursive = TRUE, full.names = TRUE, pattern = "csv$")
+for(f in ff)
+   message(f)
+```
+
+### Session Initialization ###
+
+To initialize an R session for this or any subsequent analyses of this data, we simply launch R and load the required R packages, set the working directory, and initialize a local "cluster":
+
+```{r eval=TRUE, results='hide', message=FALSE, echo=TRUE}
+# use this code to initialize a new R session
+library(datadr)
+library(trelliscope)
+library(cyberTools)
+setwd("~/Documents/Code/vastChallenge")
+
+# make a local "cluster" of 8 cores
+cl <- makeCluster(8)
+clc <- localDiskControl(cluster = cl)
+```
+
+
+

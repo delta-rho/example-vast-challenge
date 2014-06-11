@@ -1,0 +1,110 @@
+library(datadr)
+setwd("~/Documents/Projects/vastChallengeDemo")
+source("analysis/_fns.R")
+
+# make a local "cluster" of 8 cores
+cl <- makeCluster(8)
+clc <- localDiskControl(cluster = cl)
+
+bigIPs <- c("172.20.0.15", "172.20.0.4", "172.10.0.4", "172.30.0.4")
+
+# need to include "other 172.*" addresses
+other172IPs <- paste("172.20.1.", c(101:200), sep = "")
+hostIPs <- setdiff(c(hostList$IP, other172IPs), bigIPs)
+
+getHost <- function(x) {
+   srcIpInd <- x$firstSeenSrcIp %in% hostIPs
+   destIpInd <- x$firstSeenDestIp %in% hostIPs
+   hostInd <- which(srcIpInd | destIpInd)
+   x <- x[hostInd,]
+   srcIpInd <- srcIpInd[hostInd]
+   x$srcIsHost <- srcIpInd
+   
+   x$hostIP <- x$firstSeenDestIp
+   x$hostIP[srcIpInd] <- x$firstSeenSrcIp[srcIpInd]
+   x
+}
+
+
+
+
+
+
+netFlowRaw <- ddf(localDiskConn("data/netFlowRaw"))
+
+
+srcIpFreq <- summary(netFlowRaw)$firstSeenSrcIp$freqTable
+srcIpFreq <- mergeHostList(srcIpFreq, "var")
+head(srcIpFreq)
+
+# for each type, get the quantiles
+srcIpFreqQuant <- groupQuantile(srcIpFreq, "type")
+
+# quantile plot by host type
+xyplot(log10(Freq) ~ 100 * p | type, data = srcIpFreqQuant, 
+   layout = c(7, 1), type = c("p", "g"), 
+   between = list(x = 0.25), 
+   scales = list(y = list(at = log10at, labels = log10labels)),
+   xlab = "Percentile",
+   ylab = "Number of Connections as Source IP",
+   aspect = 3
+)
+
+
+
+nfByHost <- divide(netFlowRaw, by = "hostIP",
+   preTransFn = getHost,
+   output = localDiskConn("data/nfByHost"),
+   control = clc
+)
+
+nfByHost <- ddf(localDiskConn("data/nfByHost"))
+
+hostTime <- recombine(nfByHost, apply = function(x) {
+   timeHour <- as.POSIXct(trunc(x$time, 0, units = "hours"))
+   res <- data.frame(xtabs(~ timeHour))
+   res$timeHour <- as.POSIXct(res$timeHour)
+   res
+}, combine = combDdo()) #, control = clc)
+
+
+library(trelliscope)
+vdbConn("vdb")
+
+timePanel <- function(x) {
+   xyplot(sqrt(Freq) ~ timeHour, data = x, type = c("p", "g"))
+}
+
+kvApply(timePanel, hostTime[[100]])
+
+timeCog <- function(x) {
+   IP <- attr(x, "split")$hostIP
+   curHost <- hostList[hostList$IP == IP,]
+   if(nrow(curHost) == 0) {
+      hostName <- "?"
+      type <- "?"
+   } else {
+      hostName <- curHost$hostName
+      type <- curHost$type
+   }
+   
+   list(
+      hostName = cog(hostName, desc = "host name"),
+      IP = cog(IP, desc = "host IP address"),
+      type = cog(type, desc = "host type"),
+      nobs = cog(sum(x$Freq), "log 10 total number of connections"),
+      timeCover = cog(nrow(x), desc = "number of hours containing connections"),
+      medHourCt = cog(median(sqrt(x$Freq)), desc = "median square root number of connections"),
+      madHourCt = cog(mad(sqrt(x$Freq)), desc = "median absolute deviation square root number of connections"),
+      max = cog(max(x$Freq), desc = "maximum number of connections in an hour")
+   )
+}
+
+timeCog(hostTime[[1]][[2]])
+
+makeDisplay(hostTime,
+   name = "hourly_count",
+   panelFn = timePanel,
+   panelDim = list(width = 800, height = 400),
+   cogFn = timeCog,
+   lims = list(x = "same", y = "same"))

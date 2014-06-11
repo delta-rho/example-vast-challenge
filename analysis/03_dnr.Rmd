@@ -1,0 +1,1143 @@
+```
+
+```{r eval=TRUE, echo=FALSE, message=FALSE, purl=FALSE}
+options(width = 90)
+Sys.setenv(TZ = "UTC")
+library(datadr)
+library(trelliscope)
+library(cyberTools)
+setwd("~/Documents/Code/vastChallenge")
+cl <- makeCluster(8)
+clc <- localDiskControl(cluster = cl)
+nfRaw <- ddf(localDiskConn("data/nfRaw"))
+nfByHost <- ddf(localDiskConn("data/nfByHost"))
+nfByExtHost <- ddf(localDiskConn("data/nfByExtHost"))
+nfByTime <- ddf(localDiskConn("data/nfByTime"))
+load("data/artifacts/hostTimeAgg.Rdata")
+load("data/artifacts/hostTimeAggDF.Rdata")
+load("data/artifacts/hostTimeDirAgg.Rdata")
+```
+
+## NetFlow D&R ##
+
+### Division by Inside Host ###
+
+We have looked at many summaries and are now ready to look at some of the data in more detail.  
+
+For many of our analyses, it makes sense to be investigating the behaviors of individual hosts inside the network.  The data we read in was arbitrarily split into 50K rows per subset, but for doing per-inside-host analyses, it makes sense to divide the data by inside host.  Another division that is worth looking into is looking at all hosts for small slices of time, which we will do later.
+
+In the `preTransFn`, we filter out the DDoS attacks, we will get rid of the 4 big HTTP hosts cooresponding to our previous analysis.  We want to filter out records with destination in `bigIPs` and source in `badIPs` during `bigTimes`:
+
+```{r eval=TRUE, echo=TRUE}
+load("data/artifacts/bigTimeAgg.Rdata")
+load()"data/artifacts/badIPs.Rdata")
+bigTimes <- sort(unique(bigTimeAgg$timeMinute[bigTimeAgg$Freq > 10000]))
+
+bigIPs <- c("172.20.0.15", "172.20.0.4", "172.10.0.4", "172.30.0.4")
+```
+
+To create the `nfByHost` division, we define a new variable `hostIP` and split on that, knowing that we have taken care of inside->inside connections... `getHost()` takes the chunk of data being processed and adds a new column `hostIP` and `srcIsHost`...
+
+```{r nfByHost, eval=FALSE, echo=TRUE}
+nfByHost <- divide(nfRaw, by = "hostIP",
+   preTransFn = function(x) {
+      library(cyberTools)
+      x$timeMinute <- as.POSIXct(trunc(x$date, 0, units = "mins"))
+      x <- subset(x, !(timeMinute %in% bigTimes & 
+         firstSeenSrcIp %in% c(bigIPs, badIPs) & 
+         firstSeenDestIp %in% c(bigIPs, badIPs)))
+      if(nrow(x) > 0) {
+         return(getHost(x))
+      } else {
+         return(NULL)
+      }
+   },
+   output = localDiskConn("data/nfByHost"),
+   control = clc
+)
+nfByHost <- updateAttributes(nfByHost, control = clc)
+```
+
+<!-- 180 with 8 cores -->
+
+Look at the object...
+
+```{r printByHost, eval=TRUE, echo=TRUE}
+nfByHost
+```
+
+Much smaller...
+
+The subset sizes in this partitioning of the data are lopsided...
+
+```{r plotByHostRows, eval=TRUE, echo=TRUE, fig.width=9, fig.height=5}
+plot(log10(splitRowDistn(nfByHost)))
+```
+
+```{r eval=FALSE, echo=FALSE, purl=FALSE}
+{
+   head(kvExample(nfByHost)[[2]])
+   nrow(nfRaw) / nrow(nfByHost)
+   tmp <- drLapply(nfByHost, nrow, control = clc)
+   tmp <- sapply(as.list(tmp), function(x) x[[2]])
+   plot(sort(tmp))
+
+}
+```
+
+### Time-Aggregated Recombination ###
+
+Let's tabulate number of connections by hour:
+
+```{r hostTimeAgg, eval=FALSE, echo=TRUE}
+hostTimeAgg <- recombine(nfByHost, 
+   apply = function(x) {
+      timeHour <- as.POSIXct(trunc(x$date, 0, units = "hours"))
+      res <- data.frame(xtabs(~ timeHour))
+      res$timeHour <- as.POSIXct(res$timeHour)
+      res
+   }, 
+   combine = combDdo(), control = clc)
+save(hostTimeAgg, file = "data/artifacts/hostTimeAgg.Rdata")
+
+```
+
+This results in a distributed data object.  We can further apply a recombination to see if there are any big spikes from the aggregated time plot present:
+
+```{r hostTimeAggDF, eval=FALSE, echo=TRUE}
+hostTimeAggDF <- recombine(hostTimeAgg, 
+   apply = identity, 
+   combine = combRbind())
+save(hostTimeAggDF, file = "data/artifacts/hostTimeAggDF.Rdata")
+```
+
+Plot...
+
+```{r plotHostTimeAggDF, eval=TRUE, echo=TRUE, fig.width=9, fig.height=5}
+xyplot(sqrt(Freq) ~ timeHour, data = hostTimeAggDF, alpha = 0.5)
+```
+
+Massive spikes are not present.  But some other interesting time behavior...
+
+### Trelliscope Displays ###
+
+Visual recombination... See Trelliscope docs for a lot more details...
+
+```{r loadTrell, eval=TRUE, echo=TRUE, message=FALSE, results='hide'}
+library(trelliscope)
+vdbConn("vdb")
+load("vdb/displays/_displayList.Rdata")
+```
+
+Make and test simple panel function...
+
+```{r trellPanel, eval=TRUE, echo=TRUE, fig.width=9, fig.height=5}
+timePanel <- function(x) {
+   xyplot(log10(Freq + 1) ~ timeHour, data = x, type = c("p", "g"))
+}
+timePanel(hostTimeAgg[[1]][[2]])
+```
+
+Make and test simple cognostics function...
+
+```{r trellCog, eval=TRUE, echo=TRUE}
+timeCog <- function(x) {
+   IP <- attr(x, "split")$hostIP
+   curHost <- hostList[hostList$IP == IP,]
+   
+   list(
+      hostName = cog(curHost$hostName, desc = "host name"),
+      type = cog(curHost$type, desc = "host type"),
+      nobs = cog(sum(x$Freq), "log 10 total number of connections"),
+      timeCover = cog(nrow(x), desc = "number of hours containing connections"),
+      medHourCt = cog(median(sqrt(x$Freq)), 
+         desc = "median square root number of connections"),
+      madHourCt = cog(mad(sqrt(x$Freq)), 
+         desc = "median absolute deviation square root number of connections"),
+      max = cog(max(x$Freq), desc = "maximum number of connections in an hour")
+   )
+}
+
+timeCog(hostTimeAgg[[1]][[2]])
+```
+
+Make the display...
+
+```{r trellMake, eval=FALSE, echo=TRUE}
+makeDisplay(hostTimeAgg,
+   name = "hourly_count",
+   group = "inside_hosts",
+   desc = "time series plot of hourly counts of connections for each inside host",
+   panelFn = timePanel,
+   panelDim = list(width = 1000, height = 400),
+   cogFn = timeCog,
+   lims = list(x = "same", y = "same"))
+```
+
+A version of this is available to view [here](http://glimmer.rstudio.com/rhafen/vast/#group=inside_hosts&name=hourly_count).
+
+Observations:
+
+- HTTP hosts have weird plateus on Apr 11 and Apr 13
+- Domain Controllers are pretty erratic - dc01.bigmkt1.com has a plateau
+- SMTP jumps and then trails down, and the jump is not always on the day
+  - it is usually arount 170 connections / hour
+- Administrator is pretty boring
+- Workstations:
+  - sorted by `timeCover`, some have nice periodic behavior
+  - most workstations have activity for just 1-2 hours a day
+  - sometimes there is activity that spans a full day (e.g. 172.20.1.94)
+  - This is not at all how I would think workstations behave
+
+#### Break it up by incoming / outgoing
+
+If host is first seen source, classify connection as "outgoing" (this will not be 100% correct), otherwise, incoming, then aggregate by hour...
+
+```{r hostTimeDirAgg, eval=FALSE, echo=TRUE}
+hostTimeDirAgg <- recombine(nfByHost, 
+   apply = function(x) {
+      x$timeHour <- as.POSIXct(trunc(x$date, 0, units = "hours"))
+      res <- data.frame(xtabs(~ timeHour + srcIsHost, data = x))
+      res$timeHour <- as.POSIXct(res$timeHour)
+      res$direction <- "incoming"
+      res$direction[as.logical(as.character(res$srcIsHost))] <- "outgoing"
+      subset(res, Freq > 0)
+   }, 
+   combine = combDdo(), control = clc)
+save(hostTimeDirAgg, file = "data/artifacts/hostTimeDirAgg.Rdata")
+```
+
+<!--
+# TODO: fix getSplitVars for when not of class divValue
+# TODO: find out why it's not divValue
+-->
+
+Now make a similar display:
+
+```{r timeDirDisplay, eval=FALSE, echo=TRUE}
+timePanelDir <- function(x) {
+   xyplot(log10(Freq + 1) ~ timeHour, groups = direction, data = x, type = c("p", "g"), auto.key = TRUE)
+}
+
+makeDisplay(hostTimeDirAgg,
+   name = "hourly_count_src_dest",
+   group = "inside_hosts",
+   desc = "time series plot of hourly counts of connections for each inside host by source / destination",
+   panelFn = timePanelDir,
+   panelDim = list(width = 1000, height = 400),
+   cogFn = timeCog,
+   lims = list(x = "same", y = "same"))
+```
+
+Observations:
+
+- SMTP: 172.20.0.3 has a weird plateau thing at the beginning of each day for its outgoing connections
+- Domain Controller:
+  - outgoings are steady and low
+  - incomings are typically very high but only for a contiguous 4-5 hours a day - investigate these
+- Administrator: 
+  - outgoings are low and steady
+  - incomings are one or two spikes a day (look into this and see what port)
+- Workstations:
+  - with cyclical behavior, such as 172.10.2.66
+  - the cyclical behavior is coming from outgoing connections
+  - Workstation 172.30.1.215 has 2019 connections
+  - After that is workstation 172.10.2.106, with 29234
+  - 172.10.2.106, 172.30.1.218, 172.20.1.23, 172.10.2.135, 172.20.1.81, 172.20.1.47, 172.30.1.223, 172.10.2.66 - these guys all have about 29K connections, and look very similar, and are cyclical - why?
+- HTTP hosts with same plateu behavior:
+  - 172.10.0.5, 172.10.0.9, 172.10.0.8, 172.20.0.6, 172.10.0.7
+  - Also notice that there is a hole at 2013-04-14 17:00
+  - most everyone has a missing point there
+- SMTP has outgoing
+
+### Closer Investigation ###
+
+Let's look at some of these...
+
+```{r eval=FALSE, echo=FALSE, purl=FALSE}
+{
+# panel = function(x, y, ...) {
+#    panel.xyplot(x, y, ...)
+#    panel.abline(v = as.POSIXct("2013-04-14 17:00"))
+# }
+tmp <- recombine(hostTimeAgg, apply = function(x) 
+   nrow(subset(x, timeHour == as.POSIXct("2013-04-14 17:00"))), 
+   combine = combRbind())
+table(tmp$val)
+}
+```
+
+#### Workstations with the most connections
+
+From our observations before, we noticed some workstations with ~29K connections each that all have similar-looking behavior.  Let's pull these into memory:
+
+```{r getBigHosts, eval=TRUE, echo=TRUE}
+bigHosts <- nfByHost[paste("hostIP=", 
+   c("172.10.2.106", "172.30.1.218", "172.20.1.23", 
+   "172.10.2.135", "172.20.1.81", "172.20.1.47", 
+   "172.30.1.223", "172.10.2.66"), sep = "")]
+```
+
+Let's look at what destination ports the first host is using:
+
+```{r hostOnePort, eval=TRUE, echo=TRUE}
+hostOne <- bigHosts[[1]][[2]]
+hostOne <- subset(hostOne, srcIsHost)
+table(hostOne$firstSeenDestPort)
+```
+
+The majority is web traffic, and a few ssh.  Port 1900 is UDP to IP 239.255.255.250, which are [SSDP](http://en.wikipedia.org/wiki/Simple_Service_Discovery_Protocol) connections.
+
+Now let's tabulate by destination port and plot the results:
+
+```{r hostOnePlot, eval=TRUE, echo=TRUE, fig.width=9, fig.height=5}
+hostOne$timeHour <- as.POSIXct(trunc(hostOne$date, 0, units = "hours"), tz = "UTC")
+hostOneTab <- data.frame(xtabs(~ firstSeenDestPort + timeHour, data = hostOne))
+hostOneTab$timeHour <- as.POSIXct(hostOneTab$timeHour)
+hostOneTab <- subset(hostOneTab, Freq > 0)
+
+xyplot(sqrt(Freq) ~ timeHour, groups = firstSeenDestPort, 
+   data = hostOneTab, auto.key = TRUE, type = c("p", "g"))
+```
+
+Probably not good that there are persistent ssh (port 22) connections or connection attempts - never lets up and looks too systematic to be a human?
+
+Look at the two spikes in web traffic in the above plot...
+
+To get the times that the spikes occur:
+
+```{r hostOneTabSub, eval=TRUE, echo=TRUE}
+subset(hostOneTab, Freq > 1500)
+```
+
+Now to look at the first spike:
+
+```{r spike1, eval=TRUE, echo=TRUE}
+spike1 <- subset(hostOne, 
+   date >= as.POSIXct("2013-04-13 07:00:00", tz = "UTC") &
+   date <= as.POSIXct("2013-04-13 09:00:00", tz = "UTC") & 
+   firstSeenDestPort == 80)
+table(spike1$firstSeenDestIp)
+```
+
+`10.1.0.100` is the source for up 85% of the HTTP connections during these 2 hours -- there are 5279 attempts in total from this address - 44 attempts per minute.  There could very well be some reasonable explanation for this.
+
+Is there anything unique about these HTTP connections?
+
+```{r spike1Dur, eval=FALSE, echo=FALSE, purl=FALSE, fig.width=7, fig.height=7}
+{
+spike1$positiveDuration <- spike1$durationSeconds > 0
+sourceDurTab <- xtabs(~ firstSeenDestIp + positiveDuration, data = spike1)
+sourceDurTab
+
+xyplot(firstSeenDestPayloadBytes ~ durationSeconds, groups = positiveDuration, data = spike1)
+
+mosaicplot(sourceDurTab, color = tableau10[1:2], border = FALSE, las = 1, main = "", dir=c("h", "v"))
+}
+```
+
+```{r spike1plot, eval=TRUE, echo=TRUE, fig.width=10.5, fig.height=3}
+spike1$logPB <- log10(spike1$firstSeenDestPayloadBytes + 1)
+spike1pbQuant <- groupQuantile(spike1, "firstSeenDestIp", "logPB")
+
+xyplot(logPB ~ p * 100 | firstSeenDestIp, data = spike1pbQuant,
+   xlab = "Percentile",
+   ylab = "log10(firstSeenDestPayload + 1)",
+   layout = c(11, 1),
+   between = list(x = 0.25)
+)
+```
+
+Maybe that's interesting... `10.1.0.100` has a different distribution than others.  Look at other stuff...
+
+Now let's look at the second spike:
+
+```{r name, eval=TRUE, echo=TRUE}
+spike2 <- subset(hostOne, 
+   date >= as.POSIXct("2013-04-14 07:00:00") & 
+   date <= as.POSIXct("2013-04-14 09:00:00"))
+table(spike2$firstSeenDestIp)
+```
+
+This spike has the same story.  Dominated by `10.1.0.100`.
+
+Are there any other connections involving this IP for this host?
+
+```{r hostOneSub, eval=TRUE, echo=TRUE}
+nrow(subset(hostOne, firstSeenDestIp == "10.1.0.100"))
+```
+
+These time periods are the only times that this IP shows up.
+
+
+
+```{r cluster, eval=FALSE, echo=FALSE}
+{
+x <- nfByHost[[1]][[2]]
+
+portProp <- drLapply(nfByHost, function(x) {
+   commonPortDF2 <- droplevels(subset(commonPortDF, portName %in% c("RDP", "SMTP", "SSH", "HTTP")))
+   tmp <- x[,c("firstSeenDestPort", "srcIsHost")]
+   names(tmp)[1] <- "port"
+   tmp$dir <- "in"
+   tmp$dir[tmp$srcIsHost] <- "out"
+   tmp$dir <- factor(tmp$dir, levels = c("in", "out"))
+   tmp <- merge(tmp, commonPortDF2)
+   a1 <- data.frame(xtabs(~ portName + dir, data = tmp))
+
+   tmp <- x[,c("firstSeenSrcPort", "srcIsHost")]
+   names(tmp)[1] <- "port"
+   tmp$dir <- "out"
+   tmp$dir[tmp$srcIsHost] <- "in"
+   tmp$dir <- factor(tmp$dir, levels = c("in", "out"))
+   tmp <- merge(tmp, commonPortDF2)
+   a2 <- data.frame(xtabs(~ portName + dir, data = tmp))
+
+   res <- data.frame(t(a1$Freq + a2$Freq))
+   res[1:4] <- res[1:4] / max(sum(res[1:4]), 1)
+   res[5:8] <- res[5:8] / max(sum(res[5:8]), 1)
+   names(res) <- paste(a1$portName, a1$dir, sep = "_")
+   res
+}, combine = combRbind(), control = clc)
+
+
+library(flexclust)
+
+#Perform k-means clustering
+
+portClust <- stepFlexclust(portProp[,-1], k = 4:12)
+plot(portClust)
+
+portClust <- kcca(portProp[,-1], k = 10)
+
+portProp2 <- merge(portProp, hostList, by.x = "hostIP", by.y = "IP")
+portProp2$cluster <- portClust@cluster
+
+subset(portProp2, cluster == 1)
+}
+```
+
+### More Trelliscope Displays ###
+
+Many many more things we can plot... just one - source vs. destination bytes...
+
+```{r trellPanel2, eval=TRUE, echo=TRUE, fig.width=8, fig.height=5}
+nfPanel <- function(x) {
+   x$group <- ifelse(x$firstSeenSrcIp == attributes(x)$split$hostIP, "sending", "receiving")
+   x$group <- factor(x$group, levels = c("sending", "receiving"))
+   x$zeroDur <- ifelse(x$durationSeconds == 0, "0 seconds", ">0 seconds")
+   x$zeroDur <- factor(x$zeroDur, c("0 seconds", ">0 seconds"))
+   xyplot(log10(firstSeenSrcPayloadBytes + 1) ~ log10(firstSeenDestPayloadBytes + 1) | zeroDur, groups = group, data = x, 
+      auto.key = TRUE, 
+      # panel = log10p1panel,
+      # scales = log10p1scales,
+      between = list(x = 0.25),
+      grid = TRUE, logx = TRUE, logy = TRUE,
+      xlab = "log10(Destination Payload Bytes + 1)",
+      ylab = "log10(Source Payload Bytes + 1)"
+   )
+}
+
+nfPanel(nfByHost[[1]][[2]])
+
+nfCog <- function(x) {
+   IP <- attr(x, "split")$hostIP
+   curHost <- hostList[hostList$IP == IP,]
+   
+   c(list(
+      hostName = cog(curHost$hostName, desc = "host name"),
+      IP = cog(IP, desc = "host IP address"),
+      type = cog(curHost$type, desc = "host type"),
+      nobs = cog(log10(nrow(x)), "log 10 total number of connections"),
+      propZeroDur = cog(length(which(x$durationSeconds == 0)), desc = "proportion of zero duration connections")
+   ),
+   cogScagnostics(log10(x$firstSeenSrcPayloadBytes + 1), 
+      log10(x$firstSeenDestPayloadBytes + 1)))
+}
+
+nfCog(nfByHost[[1]][[2]])
+```
+
+```{r hostDisplay, eval=FALSE, echo=TRUE}
+makeDisplay(nfByHost,
+   name = "srcPayload_vs_destPayload",
+   panelFn = nfPanel,
+   cogFn = nfCog,
+   control = clc,
+   panelDim = list(width = 900, height = 600))
+```
+
+### Division by External Host ###
+
+```{r extHostDiv, eval=FALSE, echo=TRUE}
+nfByExtHost <- divide(nfByHost, by = "extIP",
+   preTransFn = function(x) {
+      x$extIP <- x$firstSeenSrcIp
+      x$extIP[x$srcIsHost] <- x$firstSeenDestIp[x$srcIsHost]
+      x
+   },
+   output = localDiskConn("data/nfByExtHost"),
+   control = clc
+)
+nfByExtHost <- updateAttributes(nfByExtHost, control = clc)
+```
+
+Many interesting displays to be made for this division...
+
+```{r eval=FALSE, echo=FALSE, purl=FALSE}
+{
+   tmp <- nfByExtHost[["extIP=10.138.214.18"]][[2]]
+   tmp <- nfByExtHost[["extIP=10.170.32.181"]][[2]]
+   tmp <- nfByExtHost[["extIP=10.170.32.110"]][[2]]
+
+   table(tmp$firstSeenDestPort)
+   sort(table(tmp$firstSeenSrcPort))
+}
+```
+
+### Division by Time ###
+
+Split data up by minute
+
+```{r byTimeDiv, eval=FALSE, echo=TRUE}
+nfByTime <- divide(nfByHost, by = "time10",
+   preTransFn = function(x) {
+      tmp <- paste(substr(x$date, 1, 15), "0:00", sep = "")
+      x$time10 <- as.POSIXct(tmp, tz = "UTC")
+      x
+   },
+   output = localDiskConn("data/nfByTime"),
+   control = clc
+)
+nfByTime <- updateAttributes(nfByTime, control = clc)
+```
+
+Many interesting displays to make here as well...
+
+```{r eval=FALSE, echo=FALSE, purl=FALSE}
+{
+   # # it appears that when src and dest port match, they are the same port:
+   # tmp <- x[which(x$firstSeenSrcPort %in% commonPorts & x$firstSeenDestPort %in% commonPorts),]
+   # tmp$firstSeenSrcPort == tmp$firstSeenDestPort
+   # sort(unique(tmp$firstSeenSrcPort))
+   # these ports are 0, 123, 137, 138, sometimes not the case...
+
+   portTimeTab <- drLapply(nfByTime, function(x) {
+      x$port <- -1
+      ind <- x$firstSeenSrcPort %in% commonPorts
+      x$port[ind] <- x$firstSeenSrcPort[ind]
+      ind <- x$firstSeenDestPort %in% commonPorts
+      x$port[ind] <- x$firstSeenDestPort[ind]
+      commonPortDF2 <- rbind(commonPortDF, data.frame(port = -1, portName = "Other"))
+      x <- merge(x, commonPortDF2, by = "port", all.x = TRUE)
+
+      data.frame(xtabs(~ portName, data = x))
+   }, combine = combRbind(), control = clc)
+
+   head(portTimeTab)
+
+   xyplot(log10(Freq + 1) ~ time10 | portName, data = portTimeTab, aspect = 0.25, type = c("p", "g"))
+}
+```
+
+
+```{r eval=FALSE, echo=FALSE, purl=FALSE}
+{
+nfPanel <- function(x) {
+   curIP <- attributes(x)$split$hostIP
+   x <- merge(x, commonPortDF, by.x = "firstSeenDestPort", by.y = "port", all.x = TRUE)
+   levels(x$portName) <- c(levels(x$portName), "other")
+   x$portName[is.na(x$portName)] <- "other"
+   
+   x$group <- ifelse(x$firstSeenSrcIp == curIP, "sending", "receiving")
+   x$group <- factor(x$group, levels = c("sending", "receiving"))
+   x$zeroDur <- ifelse(x$durationSeconds == 0, "0 seconds", ">0 seconds")
+   x$zeroDur <- factor(x$zeroDur, c("0 seconds", ">0 seconds"))
+   xyplot(log10(firstSeenSrcPayloadBytes + 1) ~ log10(firstSeenDestPayloadBytes + 1) | zeroDur * group, groups = portName, data = x, 
+      auto.key = list(space = "right"), 
+      panel = log10p1panel,
+      scales = log10p1scales,
+      between = list(x = 0.25),
+      grid = TRUE, logx = TRUE, logy = TRUE,
+      xlab = "Destination Payload Bytes",
+      ylab = "Source Payload Bytes"
+   )
+}
+
+i <- i + 1
+x <- nfByHost[[i]][[2]]
+cols1 <- c("firstSeenSrcPayloadBytes", "firstSeenDestPayloadBytes", "firstSeenSrcPort", "durationSeconds")
+cols2 <- c("firstSeenSrcPayloadBytes", "firstSeenDestPayloadBytes", "firstSeenDestPort", "durationSeconds")
+d1 <- merge(x[,cols1], commonPortDF, by.x="firstSeenSrcPort", by.y = "port")
+names(d1)[1] <- "port"
+d2 <- merge(x[,cols2], commonPortDF, by.x="firstSeenDestPort", by.y = "port")
+names(d2)[1] <- "port"
+
+d <- make.groups(
+   srcPort = d1,
+   destPort = d2
+)
+
+xyplot(log10(firstSeenSrcPayloadBytes + 1) ~ log10(firstSeenDestPayloadBytes + 1) | portName, data = d, groups = durationSeconds > 0, auto.key = TRUE)
+
+
+
+
+x <- merge(x, commonPortDF, by.x="firstSeenSrcPort", by.y = "port")
+
+}
+```
+
+```{r eval=FALSE, echo=FALSE, purl=FALSE}
+{
+   ############################################################################
+   ### look at Workstations that have a lot of coverage on the last day
+   ############################################################################
+
+   # example of a somewhat complex filter - want all hosts
+   # who have connections during multiple hours of the last day
+   # x <- nfByHost[["hostIP=172.20.1.202"]][[2]]
+   workEnd <- drFilter(nfByHost, filterFn = function(x) {
+      IP <- attr(x, "split")$hostIP
+      curHost <- hostList[hostList$IP == IP,]
+      if(nrow(curHost) == 0) {
+         return(FALSE)
+      } else {
+         if(curHost$type != "Workstation")
+            return(FALSE)
+      }
+      tmp <- subset(x, date > as.POSIXct("2013-04-14"))
+      length(unique(format(tmp$date, "%H"))) > 20
+   }, control = clc)
+
+   x <- workEnd[[1]][[2]][[1]]
+
+
+}
+```
+
+```{r eval=FALSE, echo=FALSE, purl=FALSE}
+
+
+nfRaw <- ddf(localDiskConn("data/nfRaw"))
+nfByHost <- ddf(localDiskConn("data/nfByHost"))
+nfByExtHost <- ddf(localDiskConn("data/nfByExtHost"))
+nfByTime <- ddf(localDiskConn("data/nfByTime"))
+
+
+commonPortDFsub <- droplevels(subset(commonPortDF, portName %in% c("RDP", "SMTP", "SSH", "HTTP")))
+
+# these are the columns we want to aggregate
+aggCols <- c("count", "durationSeconds", "firstSeenSrcPayloadBytes", "firstSeenDestPayloadBytes", "firstSeenSrcTotalBytes", "firstSeenDestTotalBytes", "firstSeenSrcPacketCount", "firstSeenDestPacketCount")
+
+getConnProto <- function(sourcePort, destPort, ports) {
+   if(is.null(ports))
+      ports <- commonPortDF$port
+   
+   tmp <- droplevels(subset(commonPortDF, port %in% ports))
+   
+   sourcePortName <- tmp$portName[match(sourcePort, tmp$port)]
+   destPortName <- tmp$portName[match(destPort, tmp$port)]
+   ind <- which(is.na(sourcePortName))
+   if(length(ind) > 0)
+      sourcePortName[ind] <- destPortName[ind]
+   
+   levels(sourcePortName) <- c(levels(sourcePortName), "Other")
+   sourcePortName[is.na(sourcePortName)] <- "Other"
+   sourcePortName
+}
+
+hostTimeAgg <- recombine(nfByHost, 
+   apply = function(x) {
+      require(cyberTools)
+      x$proto <- getConnProto(x$firstSeenSrcPort, x$firstSeenDestPort, ports = c(80, 3389, 22, 25))
+      x$count <- 1
+      
+      res <- lapply(aggCols, function(a) {
+         tmp <- aggregate(x[,a] ~ timeMinute + srcIsHost + proto, sum, data = x)
+         names(tmp)[4] <- "Freq"
+         subset(tmp, Freq > 0)
+      })
+      names(res) <- aggCols
+      res
+   },
+   output = localDiskConn("data/hostTimeAgg"),
+   params = list(commonPortDFsub = commonPortDFsub, getConnProto = getConnProto, aggCols = aggCols),
+   combine = combDdo(), control = clc, overwrite = TRUE)
+
+hostTimeAgg <- ddo(localDiskConn("data/hostTimeAgg"))
+
+
+extHostTimeAgg <- recombine(nfByExtHost,
+   apply = function(x) {
+      require(cyberTools)
+      x$proto <- getConnProto(x$firstSeenSrcPort, x$firstSeenDestPort, ports = c(80, 3389, 22, 25))
+      x$count <- 1
+      
+      res <- lapply(aggCols, function(a) {
+         tmp <- aggregate(x[,a] ~ timeMinute + srcIsHost + proto, sum, data = x)
+         names(tmp)[4] <- "Freq"
+         subset(tmp, Freq > 0)
+      })
+      names(res) <- aggCols
+      res
+   },
+   output = localDiskConn("data/extHostTimeAgg"),
+   params = list(commonPortDFsub = commonPortDFsub, getConnProto = getConnProto, aggCols = aggCols),
+   combine = combDdo(), control = clc, overwrite = TRUE)
+
+
+
+panelFn <- function(x) {
+   x <- x[[curVar]]
+   
+   protos <- levels(x$proto)
+   exclProto <- setdiff(protos, unique(x$proto))
+   if(length(exclProto) > 0) {
+      x <- rbind(x, data.frame(timeMinute = NA, srcIsHost = FALSE, proto = exclProto, Freq = NA))
+   }
+   x$srcIsHost <- factor(ifelse(x$srcIsHost, "inside-intiated", "outside-intiated"), levels = c("inside-intiated", "outside-intiated"))
+   
+   xyplot(log2(Freq) ~ timeMinute | proto, groups = srcIsHost, data = x, 
+      # type = "h", 
+      type = c("p", "g"),
+      cex = 0.4,
+      alpha = 0.5,
+      layout=c(1, 5),
+      strip = FALSE, strip.left = TRUE,
+      # scales = list(y = list(log = 2)),
+      as.table = TRUE,
+      between = list(y = 0.25),
+      prepanel = function(x, y) {
+         list(ylim = c(0, max(y)))
+      },
+      ylab = paste("log2(", curVar, ")", sep = ""),
+      auto.key = TRUE
+   )
+}
+
+cogFn <- function(x) {
+   IP <- attr(x, "split")$hostIP
+   curHost <- hostList[hostList$IP == IP,]
+   
+   tmp <- lapply(x, function(a) {
+      a$srcIsHost <- factor(ifelse(a$srcIsHost, "inside", "outside"), levels = c("inside", "outside"))
+      xtabs(log10(Freq + 1) ~ proto + srcIsHost, data = a)
+   })
+   vars <- c("count", "durationSeconds", "firstSeenSrcPayloadBytes", "firstSeenDestPayloadBytes")
+   vals <- do.call(rbind, lapply(vars, function(a) {
+      data.frame(var = a, as.data.frame(tmp[[a]]))
+   }))
+   
+   res <- lapply(seq_len(nrow(vals)), function(a) {
+      tmp <- vals[a,]
+      cog(tmp$Freq, desc = paste("log10 + 1 total ", tmp$var, " for protocol '", tmp$proto, "' initiated by ", tmp$srcIsHost, sep = ""))
+   })
+   names(res) <- sapply(seq_len(nrow(vals)), function(a) {
+      tmp <- vals[a,]
+      paste(tmp$var, tmp$proto, tmp$srcIsHost, sep = "_")
+   })
+   
+   c(
+   list(
+      hostName = cog(curHost$hostName, desc = "host name"),
+      type = cog(curHost$type, desc = "host type"),
+      externalIP = cog(curHost$externalIP, desc = "external IP"),
+      nobs = cog(sum(x$Freq), "log 10 total number of connections"),
+      timeCover = cog(nrow(x), desc = "number of hours containing connections")
+   ),
+   res)
+}
+
+extHostTimeAgg <- ddo(localDiskConn("data/extHostTimeAgg"))
+hostTimeAgg <- ddo(localDiskConn("data/hostTimeAgg"))
+
+curVar <- "count"
+panelFn(hostTimeAgg[[1]][[2]])
+
+length(cogFn(hostTimeAgg[[2]][[2]]))
+
+lapply(names(hostTimeAgg[[1]][[2]]), function(curVar) {
+   makeDisplay(hostTimeAgg, 
+      name = paste("time_agg_", curVar, sep = ""),
+      group = "inside",
+      desc = "Counts aggregated by minute for inside hosts by protocol",
+      panelFn = panelFn,
+      cogFn = cogFn,
+      panelDim = list(width = 12 * 72, height = 7 * 72),
+      params = list(curVar = curVar)
+   )
+})
+
+extCogFn <- function(x) {
+   
+   tmp <- lapply(x, function(a) {
+      a$srcIsHost <- factor(ifelse(a$srcIsHost, "inside", "outside"), levels = c("inside", "outside"))
+      xtabs(log10(Freq + 1) ~ proto + srcIsHost, data = a)
+   })
+   vars <- c("count", "durationSeconds", "firstSeenSrcPayloadBytes", "firstSeenDestPayloadBytes")
+   vals <- do.call(rbind, lapply(vars, function(a) {
+      data.frame(var = a, as.data.frame(tmp[[a]]))
+   }))
+   
+   res <- lapply(seq_len(nrow(vals)), function(a) {
+      tmp <- vals[a,]
+      cog(tmp$Freq, desc = paste("log10 + 1 total ", tmp$var, " for protocol '", tmp$proto, "' initiated by ", tmp$srcIsHost, sep = ""))
+   })
+   names(res) <- sapply(seq_len(nrow(vals)), function(a) {
+      tmp <- vals[a,]
+      paste(tmp$var, tmp$proto, tmp$srcIsHost, sep = "_")
+   })
+   
+   c(
+   list(
+      nobs = cog(sum(x$Freq), "log 10 total number of connections"),
+      timeCover = cog(nrow(x), desc = "number of hours containing connections")
+   ),
+   res)
+}
+
+
+panelFn(extHostTimeAgg[[1]][[2]])
+extCogFn(extHostTimeAgg[[2]][[2]])
+
+for(curVar in names(extHostTimeAgg[[1]][[2]])) {
+   makeDisplay(extHostTimeAgg, 
+      name = paste("time_agg_inside", curVar, sep = ""),
+      group = "outside",
+      desc = "Counts aggregated by minute for external hosts by protocol",
+      panelFn = panelFn,
+      cogFn = extCogFn,
+      panelDim = list(width = 12 * 72, height = 7 * 72),
+      params = list(curVar = curVar)
+   )
+}
+
+
+
+
+curVar <- "firstSeenDestPayloadBytes"
+curVar <- "firstSeenSrcPayloadBytes"
+
+
+
+
+#########################################################################
+### graph stuff...
+#########################################################################
+
+linkFreq <- drXtabs(~ v1 + v2, data = nfRaw, transFn = function(x) {
+   tmp <- x[,c("firstSeenSrcIp", "firstSeenDestIp")]
+   tmp <- data.frame(apply(tmp, 2, sort), stringsAsFactors = FALSE)
+   names(tmp) <- c("v1", "v2")
+   tmp
+}, control = clc)
+save(linkFreq, file = "data/artifacts/linkFreq.Rdata")
+
+sshLinkFreq <- drXtabs(~ v1 + v2, data = nfRaw, transFn = function(x) {
+   tmp <- subset(x, firstSeenSrcPort == 22 | firstSeenDestPort == 22)
+   if(nrow(tmp) > 0) {
+      tmp <- tmp[,c("firstSeenSrcIp", "firstSeenDestIp")]
+      tmp <- data.frame(matrix(apply(tmp, 2, sort), ncol = 2), stringsAsFactors = FALSE)
+      names(tmp) <- c("v1", "v2")
+      return(tmp)
+   } else {
+      return(NULL)
+   }
+}, control = clc)
+save(sshLinkFreq, file = "data/artifacts/sshLinkFreq.Rdata")
+
+rdpLinkFreq <- drXtabs(~ v1 + v2, data = nfRaw, transFn = function(x) {
+   tmp <- subset(x, firstSeenSrcPort == 3389 | firstSeenDestPort == 3389)
+   if(nrow(tmp) > 0) {
+      tmp <- tmp[,c("firstSeenSrcIp", "firstSeenDestIp")]
+      tmp <- data.frame(matrix(apply(tmp, 2, sort), ncol = 2), stringsAsFactors = FALSE)
+      names(tmp) <- c("v1", "v2")
+      return(tmp)
+   } else {
+      return(NULL)
+   }
+}, control = clc)
+save(rdpLinkFreq, file = "data/artifacts/rdpLinkFreq.Rdata")
+
+
+
+plot(sort(log10(linkFreq$Freq)))
+
+
+
+
+# create layout based on most connected links
+tmp <- subset(linkFreq, log10(Freq) > 3)
+
+# get the nodes that haven't been included
+allNodes <- unique(unlist(linkFreq[,1:2]))
+nodes <- unique(unlist(tmp[,1:2]))
+miss <- setdiff(allNodes, nodes)
+
+# for nodes that aren't included, just add the most frequent link
+inds <- sapply(miss, function(x) min(which(x == linkFreq$v1 | x == linkFreq$v2)))
+tmp <- rbind(tmp, linkFreq[inds,])
+
+# check again to make sure
+allNodes <- unique(unlist(linkFreq[,1:2]))
+nodes <- unique(unlist(tmp[,1:2]))
+miss <- setdiff(allNodes, nodes)
+
+g <- graph.edgelist(as.matrix(tmp[,1:2]), directed = FALSE)
+
+
+
+#########################################################################
+### RDP
+#########################################################################
+
+library(trelliscope)
+vdbConn("vdb")
+load("vdb/displays/_displayList.Rdata")
+
+library(cyberTools)
+load("data/artifacts/rdpLinkFreq.Rdata")
+
+getGraphData <- function(linkFreq, linkFreqSub = NULL) {
+   require(igraph)
+   vert <- data.frame(name = sort(unique(unlist(linkFreq[,1:2]))))
+   vert <- mergeHostList(vert, ipVar = "name")
+   vert$id <- seq_len(nrow(vert))
+   vert$type <- factor(vert$type)
+   set.seed(1234)
+   g <- graph.data.frame(linkFreq[,1:2], directed = FALSE, vert)
+   if(!is.null(linkFreqSub)) {
+      gSub <- graph.data.frame(linkFreqSub[,1:2], directed = FALSE, vert)
+      
+      message("Computing fruchterman.reingold on subgraph...")
+      l1 <- layout.fruchterman.reingold(gSub)
+      message("Computing fruchterman.reingold with log weights on subgraph...")
+      l2 <- layout.fruchterman.reingold(gSub, params = list(weights = log10(linkFreqSub$Freq + 1)))
+      message("Computing fruchterman.reingold with weights on subgraph...")
+      l3 <- layout.fruchterman.reingold(gSub, params = list(weights = linkFreqSub$Freq + 1))
+      message("Computing kamada.kawai on subgraph...")
+      l4 <- layout.kamada.kawai(gSub)      
+   } else {
+      gSub <- l1 <- l2 <- l3 <- l4 <- NULL
+   }
+   message("Computing fruchterman.reingold on full graph...")
+   l5 <- layout.fruchterman.reingold(g)
+   message("Computing fruchterman.reingold with log weights on full graph...")
+   l6 <- layout.fruchterman.reingold(g, params = list(weights = log10(linkFreq$Freq + 1)))
+   l7 <- layout.fruchterman.reingold(g, params = list(weights = linkFreq$Freq))
+   message("Computing kamada.kawai on full graph...")
+   l8 <- layout.kamada.kawai(g)
+   message("Computing reingold.tilford on full graph...")
+   l9 <- layout.reingold.tilford(g, params = list(circular = TRUE, root = which.max(linkFreq$Freq)))
+   
+   list(g = g, gSub = gSub, vert = vert, l1 = l1, l2 = l2, l3 = l3, l4 = l4, l5 = l5, l6 = l6, l7 = l7, l8 = l8, l9 = l9)
+}
+
+plotGraphData <- function(x, linkFreq, overlay = NULL, layout = "l5", cex = 1, overlayCol = "black") {
+   addAlpha <- function(colors, alpha = 1.0) {
+      r <- col2rgb(colors, alpha = TRUE)
+      r[4,] <- alpha*255
+      r <- r / 255.0
+      return(rgb(r[1,], r[2,], r[3,], r[4,]))
+   }
+   
+   cco <- x[[layout]]
+   if(is.null(cco))
+      stop("layout doesn't exist")
+   
+   par(mar = c(0, 0, 0, 0))
+   plot(range(cco[,1]), range(cco[,2]), axes = FALSE, xlab = "", ylab = "", type = "n")
+   fromInd <- match(linkFreq[,1], x$vert$name)
+   toInd <- match(linkFreq[,2], x$vert$name)
+   segments(cco[fromInd,1], cco[fromInd,2], cco[toInd,1], cco[toInd,2], col = addAlpha("black", 0.05))
+   if(!is.null(overlay)) {
+      fromInd <- match(overlay[,1], x$vert$name)
+      toInd <- match(overlay[,2], x$vert$name)
+      arrows(cco[fromInd,1], cco[fromInd,2], cco[toInd,1], cco[toInd,2], col = overlayCol, lwd = 2, length = 0.1)
+      uVert <- unique(unlist(overlay[,1:2]))
+      textXY <- cco[match(uVert, x$vert$name),]
+      text(textXY[,1], textXY[,2], uVert, pos = 1, cex = 0.7, col = "black")
+   }
+   points(cco[,1], cco[,2], col = tableau10[c(1:7, 10)][as.integer(x$vert$type)], cex = cex, pch = 19)
+   legend("topright", levels(x$vert$type), col = tableau10[c(1:7, 10)], pch = 19)
+}
+
+rdpGraph <- getGraphData(rdpLinkFreq)
+# save(rdpGraph, file = "data/artifacts/rdpGraph.Rdata")
+
+# tkplot(rdpGraph$g, vertex.size = 4, vertex.label.cex = 0.1)
+
+plotGraphData(rdpGraph, rdpLinkFreq, layout = "l8")
+plotGraphData(rdpGraph, rdpLinkFreq, layout = "l9")
+
+nfByTime <- ddf(localDiskConn("data/nfByTime"))
+
+a <- recombine(nfByTime, apply = function(x) {
+   length(which((x$firstSeenSrcPort == 3389 | x$firstSeenDestPort == 3389)))
+}, combine = combRbind(), control = clc)
+a <- subset(a, val > 0)
+
+xyplot(val ~ time10, data = a)
+
+a2 <- recombine(nfByTime, apply = function(x) {
+   length(which((x$firstSeenSrcPort == 3389 | x$firstSeenDestPort == 3389) & (x$firstSeenDestPayloadBytes > 0 | x$firstSeenSrcPayloadBytes > 0)))
+}, combine = combRbind(), control = clc)
+a2 <- subset(a2, val > 0)
+
+xyplot(val ~ time10, data = a2)
+
+a[10,]
+
+rdpByTime <- drLapply(nfByTime, function(x) {
+   subset(x, firstSeenSrcPort == 3389 | firstSeenDestPort == 3389)
+}, control = clc)
+
+rdpByTime <- drFilter(rdpByTime, function(x) nrow(x) > 0)
+
+save(rdpByTime, file = "data/artifacts/rdpByTime.Rdata")
+
+load("data/artifacts/rdpByTime.Rdata")
+
+panelFn <- function(x) {
+   require(cyberTools)
+   tmp <- aggregate(firstSeenSrcPayloadBytes + firstSeenDestPayloadBytes ~ firstSeenSrcIp + firstSeenDestIp, data = x, sum)
+   names(tmp) <- c("v1", "v2", "bytes")
+   
+   plotGraphData(rdpGraph, rdpLinkFreq, overlay = tmp, layout = "l9", overlayCol = ifelse(tmp$bytes > 0, "red", tableau20[18]))
+}
+
+cogFn <- function(x) {
+   tmp <- subset(x, firstSeenSrcPayloadBytes > 0 | firstSeenDestPayloadBytes > 0)
+   maxAttempt <- max(data.frame(xtabs(~ firstSeenSrcIp + firstSeenDestIp, data = x))$Freq)
+   mostActive <- table(unlist(x[,c("firstSeenSrcIp", "firstSeenDestIp")]))
+   IPs <- paste(names(sort(mostActive, decreasing = TRUE)), collapse = ",")
+   mostActive <- names(mostActive)[which.max(mostActive)]
+   list(
+      nConn = cog(nrow(x), desc = "number of connection attempts"),
+      nPayload = cog(nrow(tmp), desc = "number of connection attempts with positive payload"),
+      maxAttempt = cog(maxAttempt, desc = "maximum number of times RDP was attempted on a single link"),
+      mostActive = cog(mostActive, desc = "most active IP address for RDP activity during this period"),
+      IPs = cog(IPs, desc = "list of IP addresses involved")
+   )
+}
+
+panelFn(rdpByTime[[1]][[2]])
+cogFn(rdpByTime[[1]][[2]])
+
+tmp <- rdpByTime[[1]][[2]]
+tmp
+
+makeDisplay(rdpByTime, 
+   name = "rdp_graph",
+   desc = "Graph of RDP connections for each minute",
+   panelFn = panelFn,
+   cogFn = cogFn,
+   panelDim = list(width = 11 * 72, height = 8 * 72),
+   params = list(plotGraphData = plotGraphData, rdpGraph = rdpGraph, rdpLinkFreq = rdpLinkFreq)
+)
+
+
+
+#########################################################################
+### end RDP
+#########################################################################
+
+
+plot(1:10, col = tableau10, pch = 19, cex = 3)
+
+
+
+
+
+nfByTime <- ddf(localDiskConn("data/nfByTime"))
+
+
+x <- nfByTime[[1]][[2]]
+
+tmp <- x[,c("firstSeenSrcIp", "firstSeenDestIp")]
+tmp <- apply(tmp, 2, sort)
+tmp <- tmp[!duplicated(tmp),]
+
+g <- graph.edgelist(tmp, directed = FALSE)
+
+
+co <- layout.fruchterman.reingold(g)
+   
+plot(g)
+
+
+
+tmp <- as.vector(t(tmp))
+tmp <- as.integer(factor(tmp))
+
+g <- graph(tmp, directed = FALSE)
+plot(g)
+
+plot(graph(c(1, 2, 2, 1)))
+
+
+## port scans
+
+a <- nfByExtHost[["extIP=10.6.6.6"]][[2]]
+
+length(unique(a$firstSeenDestPort))
+plot(table(a$firstSeenDestPort))
+
+length(unique(a$firstSeenSrcPort))
+plot(table(a$firstSeenSrcPort))
+
+############################################################################
+### 
+############################################################################
+
+
+
+
+
+
+
+extHostTimeAgg <- recombine(nfByExtHost, 
+   apply = function(x) {
+      timeHour <- as.POSIXct(trunc(x$date, 0, units = "hours"))
+      res <- data.frame(xtabs(~ timeHour))
+      res$timeHour <- as.POSIXct(res$timeHour)
+      res
+   }, 
+   combine = combDdo(), control = clc)
+save(extHostTimeAgg, file = "data/artifacts/extHostTimeAgg.Rdata")
+
+
+panelFn <- function(x) (
+   xyplot(firstSeenDestPort ~ date, data = x)
+)
+
+
+
+
+
+cogFn <- function(x) {
+   list(
+      nobs = cog(sum(x$Freq), "log 10 total number of connections"),
+      timeCover = cog(nrow(x), desc = "number of hours containing connections"),
+      medHourCt = cog(median(sqrt(x$Freq)), 
+         desc = "median square root number of connections"),
+      madHourCt = cog(mad(sqrt(x$Freq)), 
+         desc = "median absolute deviation square root number of connections"),
+      max = cog(max(x$Freq), desc = "maximum number of connections in an hour")
+   )
+}
+
+makeDisplay(extHostTimeAgg,
+   name = "hourly_count",
+   group = "outside_hosts",
+   desc = "time series plot of hourly counts of connections for each outside host",
+   panelFn = timePanel,
+   panelDim = list(width = 1000, height = 400),
+   cogFn = cogFn,
+   lims = list(x = "same", y = "same"))
+
+
+
+```
+
