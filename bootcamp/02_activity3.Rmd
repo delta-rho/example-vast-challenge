@@ -200,19 +200,19 @@ We noticed that there are four web servers with an inordinately large number of 
 
 To start to drill down on these machines, we can look at the time series of counts within each minute for each of the four IP addresses, but this will require some computation on `nfRaw`.  So far, we have used the precomputed frequency tables for simple summary analyses.  In this case, we would like to count how many connections there were each minute for each of the big IP addresses.  Such tabulation is an example of a "division-agnostic" method - a method we would like to run over the entire data set regardless of how it is divided.
 
-In datadr, there is a function `drXtabs()` that does this.  It's interface is very similar to the familiar `xtabs()` available in base R that computes cross tabulations, e.g.:
+In datadr, there is a function `drAggregate()` that does this.  It's interface is very similar to the familiar `xtabs()` available in base R that computes cross tabulations, e.g.:
 
 ```{r eval=TRUE, echo=TRUE}
 # example of R's built-in xtabs() function
 data.frame(xtabs(~ Species, data = iris))
 ```
 
-As with `xtabs()`, at a minimum, we provide `drXtabs()` a formula specifying the tabulation and the input data (must be a ddf or coercible to one).  We also subset the data to the four big IP addresses prior to performing the tabulation and create a variable that will help us bin by minute through the use of the `transFn` argument.
+As with `xtabs()`, at a minimum, we provide `drAggregate()` a formula specifying the tabulation and the input data (must be a ddf or coercible to one).  We also subset the data to the four big IP addresses prior to performing the tabulation and create a variable that will help us bin by minute through the use of the `transFn` argument.
 
 ```{r bigTimeAgg, eval=FALSE, echo=TRUE}
 # aggregate by minute and IP for just "bigIPs"
-bigTimeAgg <- drXtabs(~ timeMinute + firstSeenDestIp, 
-   data = nfRaw, transFn = function(x) {
+bigTimeAgg <- drAggregate(~ timeMinute + firstSeenDestIp, ##CHANGE
+   data = nfRaw, preTransFn = function(x) {
       x <- subset(x, firstSeenDestIp %in% bigIPs)
       x$timeMinute <- as.POSIXct(trunc(x$date, 0, units = "mins"))
       x
@@ -339,7 +339,7 @@ To go beyond the precomputed frequency tables provided by the summary statistics
 
 ```{r srcIpXtabs, eval=FALSE, echo=TRUE}
 # tabulate source payload by source IP
-srcIpByte <- drXtabs(firstSeenSrcPayloadBytes ~ firstSeenSrcIp, 
+srcIpByte <- drAggregate(firstSeenSrcPayloadBytes ~ firstSeenSrcIp, ##CHANGE
    data = nfRaw)
 # merge in hostList
 srcIpByte <- mergeHostList(srcIpByte, "firstSeenSrcIp")
@@ -453,11 +453,11 @@ We can use these categorizations as an additional characteristic of our workstat
 ###########################################################
 ```
 
-Another very useful division-agnostic method we can apply to our data is `quantile()`.  Here we are interested in the overall distribution of connection duration, and we can get approximate quantiles with the following:
+Another very useful division-agnostic method we can apply to our data is `drQuantile()`.  Here we are interested in the overall distribution of connection duration, and we can get approximate quantiles with the following:
 
 ```{r durQuant, eval=FALSE, echo=TRUE}
 # compute the distribution of connection duration
-dsq <- quantile(nfRaw, var = "durationSeconds")
+dsq <- drQuantile(nfRaw, var = "durationSeconds") ##CHANGE
 save(dsq, file = "data/artifacts/dsq.Rdata")
 ```
 
@@ -487,7 +487,7 @@ Now let's look at duration by source type and destination type.
 
 ```{r durSrcQuantType, eval=FALSE, echo=TRUE}
 # compute the distribution of connection duration by source host type
-dsqSrcType <- quantile(nfRaw, var = "durationSeconds", by = "type",
+dsqSrcType <- drQuantile(nfRaw, var = "durationSeconds", by = "type", ##CHANGE
    preTransFn = function(x) {
       mergeHostList(x[,c("firstSeenSrcIp", "durationSeconds")], "firstSeenSrcIp")
    },
@@ -518,7 +518,7 @@ Same as before...
 
 ```{r durDestQuantType, eval=FALSE, echo=TRUE}
 # plot the distribution of connection duration by dest host type
-dsqDestType <- quantile(nfRaw, var = "durationSeconds", by = "type",
+dsqDestType <- drQuantile(nfRaw, var = "durationSeconds", by = "type",  ## CHANGE
    preTransFn = function(x) {
       mergeHostList(x[,c("firstSeenDestIp", "durationSeconds")], "firstSeenDestIp")
    },

@@ -9,8 +9,10 @@ library(cyberTools)
 library(Rhipe)
 rhinit()
 rhoptions(runner = "/share/apps/R/3.0.2/bin/R CMD /share/apps/R/3.0.2/lib64/R/library/Rhipe/bin/RhipeMapReduce --slave --silent --vanilla")
-setwd("~/vast")
-hdfs.setwd("/user/hafe647/vast")
+#setwd("~/vast")
+#hdfs.setwd("/user/hafe647/vast")
+setwd("~/bootcamp")
+hdfs.setwd("/user/d3l348/bootcamp")
 ```
 
 # R Bootcamp #
@@ -107,6 +109,7 @@ This looks like it is almost in a suitable form for analysis.  However, there ar
 ```{r eval=TRUE, echo=TRUE}
 # make new date variable
 nfHead$date <- as.POSIXct(as.numeric(as.character(nfHead$TimeSeconds)), origin = "1970-01-01", tz = "UTC")
+nfHead$date[1:10]
 # remove old time variables
 nfHead <- nfHead[,setdiff(names(nfHead), c("TimeSeconds", "parsedDate"))]
 ```
@@ -136,7 +139,7 @@ The output connection should be an empty directory, and can be a nonexistent dir
 
 ```{r eval=TRUE, results='hide', echo=TRUE, message=FALSE}
 # initiate a new connection where parsed NetFlow data will be stored
-nfConn <- hdfsConn("nfRaw")
+nfConn <- hdfsConn("nfRaw", autoYes=TRUE)
 ```
 
 This will prompt for whether you want the directory to be created if it does not exist.  `nfConn` is now simply an R object that points to this location on HDFS:

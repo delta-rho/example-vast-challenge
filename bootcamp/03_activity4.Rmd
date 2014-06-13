@@ -65,7 +65,7 @@ nfByHost <- divide(nfRaw, by = "hostIP",
          return(NULL)
       }
    },
-   output = hdfsConn("nfByHost")
+   output = hdfsConn("nfByHost", autoYes=TRUE) ##CHANGE
 )
 nfByHost <- updateAttributes(nfByHost)
 ```
@@ -233,9 +233,10 @@ We can sync our visualization database to a web server by initializing a web con
 
 ```{r name, eval=FALSE, echo=TRUE}
 # initiate a "web" connection
-webConn(ip = "localhost", appDir = "/var/shiny-server/www", name = "vast")
+# NOTE: not working currently
+# webConn(ip = "localhost", appDir = "/var/shiny-server/www", name = "vast")
 # sync VDB to web
-webSync(fixPermissions = TRUE)
+# webSync(fixPermissions = TRUE)
 ```
 
 These displays are now available to view here: 
