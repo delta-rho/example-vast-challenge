@@ -211,7 +211,7 @@ As with `xtabs()`, at a minimum, we provide `drAggregate()` a formula specifying
 
 ```{r bigTimeAgg, eval=FALSE, echo=TRUE}
 # aggregate by minute and IP for just "bigIPs"
-bigTimeAgg <- drAggregate(~ timeMinute + firstSeenDestIp, ##CHANGE
+bigTimeAgg <- drAggregate(~ timeMinute + firstSeenDestIp,
    data = nfRaw, preTransFn = function(x) {
       x <- subset(x, firstSeenDestIp %in% bigIPs)
       x$timeMinute <- as.POSIXct(trunc(x$date, 0, units = "mins"))
@@ -339,7 +339,7 @@ To go beyond the precomputed frequency tables provided by the summary statistics
 
 ```{r srcIpXtabs, eval=FALSE, echo=TRUE}
 # tabulate source payload by source IP
-srcIpByte <- drAggregate(firstSeenSrcPayloadBytes ~ firstSeenSrcIp, ##CHANGE
+srcIpByte <- drAggregate(firstSeenSrcPayloadBytes ~ firstSeenSrcIp,
    data = nfRaw)
 # merge in hostList
 srcIpByte <- mergeHostList(srcIpByte, "firstSeenSrcIp")
@@ -457,7 +457,7 @@ Another very useful division-agnostic method we can apply to our data is `drQuan
 
 ```{r durQuant, eval=FALSE, echo=TRUE}
 # compute the distribution of connection duration
-dsq <- drQuantile(nfRaw, var = "durationSeconds") ##CHANGE
+dsq <- drQuantile(nfRaw, var = "durationSeconds") 
 save(dsq, file = "data/artifacts/dsq.Rdata")
 ```
 
@@ -487,7 +487,7 @@ Now let's look at duration by source type and destination type.
 
 ```{r durSrcQuantType, eval=FALSE, echo=TRUE}
 # compute the distribution of connection duration by source host type
-dsqSrcType <- drQuantile(nfRaw, var = "durationSeconds", by = "type", ##CHANGE
+dsqSrcType <- drQuantile(nfRaw, var = "durationSeconds", by = "type",
    preTransFn = function(x) {
       mergeHostList(x[,c("firstSeenSrcIp", "durationSeconds")], "firstSeenSrcIp")
    },
@@ -518,7 +518,7 @@ Same as before...
 
 ```{r durDestQuantType, eval=FALSE, echo=TRUE}
 # plot the distribution of connection duration by dest host type
-dsqDestType <- drQuantile(nfRaw, var = "durationSeconds", by = "type",  ## CHANGE
+dsqDestType <- drQuantile(nfRaw, var = "durationSeconds", by = "type",
    preTransFn = function(x) {
       mergeHostList(x[,c("firstSeenDestIp", "durationSeconds")], "firstSeenDestIp")
    },
