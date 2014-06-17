@@ -235,7 +235,11 @@ Observations:
 
 We can sync our visualization database to a web server by initializing a web connection and calling `webSync()`:
 
-```{r name, eval=FALSE, echo=TRUE}
+<!--
+# TODO: why is webSync and the web viewer currently not working?
+--> 
+
+```{r name, eval=FALSE, echo=FALSE}
 # initiate a "web" connection
 # NOTE: not working currently
 # webConn(ip = "localhost", appDir = "/var/shiny-server/www", name = "vast")
