@@ -65,7 +65,7 @@ nfByHost <- divide(nfRaw, by = "hostIP",
          return(NULL)
       }
    },
-   output = hdfsConn("nfByHost", autoYes=TRUE) ##CHANGE
+   output = hdfsConn("nfByHost", autoYes=TRUE)
 )
 nfByHost <- updateAttributes(nfByHost)
 ```
@@ -208,11 +208,15 @@ makeDisplay(hostTimeAgg,
    desc = "time series plot of hourly counts of connections for each inside host",
    panelFn = timePanel,
    cogFn = timeCog,
-   panelDim = list(width = 800, height = 400),
-   lims = list(x = "same", y = "same"))
+   width = 800, height = 400,
+   lims = list(x = "same", y = "same")
+)
+   
+# view the plots
+view(port=58392)
 ```
 
-A version of this is available to view [here](http://glimmer.rstudio.com/rhafen/vast/#group=inside_hosts&name=hourly_count).
+A new browser tab will open showing the Trelliscope display you just created.
 
 Observations:
 
@@ -258,7 +262,8 @@ hostTimeDirAgg <- recombine(nfByHost,
       res$direction[as.logical(as.character(res$srcIsHost))] <- "outgoing"
       subset(res, Freq > 0)
    }, 
-   combine = combDdo())
+   combine = combDdo()
+)
 save(hostTimeDirAgg, file = "data/artifacts/hostTimeDirAgg.Rdata")
 ```
 
@@ -281,9 +286,12 @@ makeDisplay(hostTimeDirAgg,
    group = "inside_hosts",
    desc = "time series plot of hourly counts of connections for each inside host by source / destination",
    panelFn = timePanelDir,
-   panelDim = list(width = 800, height = 400),
+   width = 800, height = 400,
    cogFn = timeCog,
-   lims = list(x = "same", y = "same"))
+   lims = list(x = "same", y = "same")
+)
+   
+view(port=58392)
 ```
 
 Observations:
